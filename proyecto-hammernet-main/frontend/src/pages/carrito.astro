@@ -1,0 +1,1414 @@
+---
+import Layout from '../layouts/Layout.astro';
+import EnvLoader from '../components/EnvLoader.astro';
+---
+
+<EnvLoader />
+<Layout title="Tu carrito - Ferretería Patricio">
+  <div class="container mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold text-gray-900 mb-6">Tu carrito</h1>
+
+    <!-- Paso 3: Pago (reubicado debajo del título del carrito) -->
+    <div id="checkout-payment-section" class="bg-white rounded-lg shadow p-6 mb-6 hidden">
+      <!-- Indicador de pasos -->
+      <div class="flex items-center justify-between mb-4 text-gray-500">
+        <div class="flex items-center space-x-8 w-full">
+          <div class="flex items-center space-x-2 opacity-60">
+            <button type="button" class="hover:text-blue-600" onclick="mostrarSectionLoginGuest()">Inicio de sesión</button>
+          </div>
+          <div class="flex-1 h-px bg-gray-200"></div>
+          <div class="flex items-center space-x-2 opacity-60">
+            <button type="button" class="hover:text-blue-600" onclick="mostrarSectionTipoEntrega()">Tipo de Entrega</button>
+          </div>
+          <div class="flex-1 h-px bg-gray-200"></div>
+          <div class="flex items-center space-x-2">
+            <span class="w-6 h-6 flex items-center justify-center rounded-full bg-green-500 text-white text-sm font-bold">3</span>
+            <button type="button" class="font-semibold text-gray-800 hover:text-blue-600" onclick="mostrarSectionPago()">Pago</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Datos personales -->
+      <div class="mt-2">
+        <h3 class="text-lg font-semibold text-gray-800">Datos personales</h3>
+        <p class="text-sm text-gray-600 mb-4">Ingresa tus datos para generar el comprobante de pago</p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Nombre y apellido*</label>
+            <input id="dp-nombre" type="text" class="w-full border rounded px-3 py-2" placeholder="Ej: Jeremi Toro" required>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">RUT*</label>
+        <input id="dp-rut" type="text" maxlength="13" inputmode="numeric" pattern="^\\d{1,2}\\.\\d{3}\\.\\d{3}-[\\dkK]$" title="Formato: 12.345.678-5" class="w-full border rounded px-3 py-2" placeholder="Ej: 12.345.678-9" required>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Teléfono*</label>
+            <div class="flex">
+              <span class="px-4 py-2 bg-gray-100 border border-r-0 rounded-l text-gray-700 select-none">+569</span>
+              <input id="dp-telefono" type="text" class="w-full border rounded-r px-3 py-2" placeholder="Ej: 91234567" required>
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">E-mail*</label>
+            <input id="dp-email" type="email" class="w-full border rounded px-3 py-2" placeholder="Ej: mail@ferretería_patricio.cl" required>
+          </div>
+          <div class="md:col-span-2">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Confirmar E-mail*</label>
+            <input id="dp-email2" type="email" class="w-full border rounded px-3 py-2" placeholder="Ej: mail@ferretería_patricio.cl" required>
+          </div>
+        </div>
+      </div>
+
+      <!-- Medio de pago -->
+      <div class="mt-6">
+        <h3 class="text-lg font-semibold text-gray-800">Medio de pago</h3>
+        <div class="mt-2 bg-green-50 border border-green-300 text-gray-800 rounded p-3">
+          A continuación serás redirigido a la pasarela de pago de Transbank.
+        </div>
+      </div>
+    </div>
+
+    <!-- Paso 1: Inicio de sesión o invitado -->
+    <div id="checkout-login-section" class="bg-white rounded-lg shadow p-6 mb-6 hidden">
+      <!-- Indicador de pasos -->
+      <div class="flex items-center justify-between mb-4 text-gray-500">
+        <div class="flex items-center space-x-8 w-full">
+          <div class="flex items-center space-x-2">
+            <span class="w-6 h-6 flex items-center justify-center rounded-full bg-green-500 text-white text-sm font-bold">1</span>
+            <button type="button" class="font-semibold text-gray-800 hover:text-blue-600" onclick="mostrarSectionLoginGuest()">Inicio de sesión</button>
+          </div>
+          <div class="flex-1 h-px bg-gray-200"></div>
+          <div class="flex items-center space-x-2 opacity-60">
+            <span class="w-6 h-6 flex items-center justify-center rounded-full border border-gray-300 text-gray-500 text-sm font-bold">2</span>
+            <button type="button" class="hover:text-blue-600" onclick="mostrarSectionTipoEntrega()">Tipo de Entrega</button>
+          </div>
+          <div class="flex-1 h-px bg-gray-200"></div>
+          <div class="flex items-center space-x-2 opacity-60">
+            <span class="w-6 h-6 flex items-center justify-center rounded-full border border-gray-300 text-gray-500 text-sm font-bold">3</span>
+            <button type="button" class="hover:text-blue-600" onclick="mostrarSectionPago()">Pago</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Estado de sesión reconocida -->
+      <div id="login-session-status" class="mb-4 hidden">
+        <div class="flex items-center gap-2 bg-green-50 border border-green-200 text-green-700 rounded px-3 py-2">
+          <span class="font-semibold">Ya tienes tu sesión iniciada</span>
+          <span id="login-session-user" class="text-sm"></span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Opción iniciar sesión (centrado) -->
+        <div id="login-option-card" class="border rounded-lg p-6 flex flex-col items-center text-center">
+          <h3 class="text-lg font-semibold text-gray-800 mb-2">¿Ya tienes cuenta?</h3>
+          <p class="text-sm text-gray-600 mb-4">Inicia sesión para usar tus datos guardados.</p>
+          <a href="/login" class="px-5 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Iniciar sesión</a>
+        </div>
+
+        <!-- Opción invitado (solo botón centrado) -->
+        <div id="guest-option-card" class="border rounded-lg p-6 flex flex-col items-center text-center">
+          <h3 class="text-lg font-semibold text-gray-800 mb-3">Continuar como invitado</h3>
+          <p class="text-sm text-gray-600 mb-4">Puedes seguir sin registrarte.</p>
+          <button id="btnGuestContinue" class="px-5 py-2 bg-black text-white rounded hover:bg-gray-900" onclick="continuarComoInvitado()">Continuar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Paso 2: Tipo de Entrega -->
+    <div id="checkout-delivery-section" class="bg-white rounded-lg shadow p-6 mb-6 hidden">
+      <!-- Indicador de pasos -->
+      <div class="flex items-center justify-between mb-4 text-gray-500">
+        <div class="flex items-center space-x-8 w-full">
+          <div class="flex items-center space-x-2 opacity-60">
+            <span class="w-6 h-6 flex items-center justify-center rounded-full border border-gray-300 text-gray-500 text-sm font-bold">1</span>
+            <button type="button" class="hover:text-blue-600" onclick="mostrarSectionLoginGuest()">Inicio de sesión</button>
+          </div>
+          <div class="flex-1 h-px bg-gray-200"></div>
+          <div class="flex items-center space-x-2">
+            <span class="w-6 h-6 flex items-center justify-center rounded-full bg-green-500 text-white text-sm font-bold">2</span>
+            <button type="button" class="font-semibold text-gray-800 hover:text-blue-600" onclick="mostrarSectionTipoEntrega()">Tipo de Entrega</button>
+          </div>
+          <div class="flex-1 h-px bg-gray-200"></div>
+          <div class="flex items-center space-x-2 opacity-60">
+            <span class="w-6 h-6 flex items-center justify-center rounded-full border border-gray-300 text-gray-500 text-sm font-bold">3</span>
+            <button type="button" class="hover:text-blue-600" onclick="mostrarSectionPago()">Pago</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <button id="opcion-retiro" class="border border-gray-200 rounded-lg p-6 text-center hover:border-black transition" onclick="seleccionarTipoEntrega('retiro')" aria-pressed="false">
+          <div class="flex items-center justify-center gap-2 mb-2">
+            <h3 class="text-lg font-semibold text-gray-800">Retiro en tienda</h3>
+            <span id="check-retiro" class="hidden w-5 h-5 rounded-full bg-green-500 text-white text-xs leading-none flex items-center justify-center">✓</span>
+          </div>
+          <p class="text-sm text-gray-600">Elige tu tienda y pasa a retirar.</p>
+        </button>
+        <button id="opcion-despacho" class="border border-gray-200 rounded-lg p-6 text-center hover:border-black transition" onclick="seleccionarTipoEntrega('despacho')" aria-pressed="false">
+          <div class="flex items-center justify-center gap-2 mb-2">
+            <h3 class="text-lg font-semibold text-gray-800">Despacho a domicilio</h3>
+            <span id="check-despacho" class="hidden w-5 h-5 rounded-full bg-green-500 text-white text-xs leading-none flex items-center justify-center">✓</span>
+          </div>
+          <p class="text-sm text-gray-600">Ingresa dirección más adelante para el envío.</p>
+        </button>
+      </div>
+      
+
+      <!-- Formulario de despacho a domicilio -->
+      <div id="checkout-address-section" class="mt-6 hidden">
+        <div class="bg-yellow-50 border border-yellow-300 text-yellow-800 rounded p-3 mb-4">
+          Advertencia: solo se realizan despachos dentro de la ciudad de Calama.
+        </div>
+
+        <div class="space-y-4">
+          <div>
+            <label for="dir-buscar" class="block text-sm font-medium text-gray-700 mb-1">Ingresar tu dirección con calle y número*</label>
+            <div class="flex gap-2">
+              <input id="dir-buscar" type="text" class="flex-1 border rounded px-3 py-2" placeholder="Ej: Mexico 3164, Calama" required>
+              <button type="button" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700" onclick="buscarEnMapa()">Buscar</button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label for="dir-calle" class="block text-sm font-medium text-gray-700 mb-1">Calle*</label>
+              <input id="dir-calle" type="text" class="w-full border rounded px-3 py-2" placeholder="Ej: Mexico" required>
+            </div>
+            <div>
+              <label for="dir-numero" class="block text-sm font-medium text-gray-700 mb-1">Número*</label>
+              <input id="dir-numero" type="text" class="w-full border rounded px-3 py-2" placeholder="Ej: 3164" required>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label for="dir-depto" class="block text-sm font-medium text-gray-700 mb-1">Depto / Oficina / Nº Casa</label>
+              <input id="dir-depto" type="text" class="w-full border rounded px-3 py-2" placeholder="Ej: Depto 456">
+            </div>
+            <div>
+              <label for="dir-adicional" class="block text-sm font-medium text-gray-700 mb-1">Información adicional</label>
+              <input id="dir-adicional" type="text" class="w-full border rounded px-3 py-2" placeholder="Ej: Casa esquina, portón negro">
+            </div>
+          </div>
+
+          <div class="mt-2">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Confirma tu domicilio en el mapa</label>
+            <div class="w-full h-64 border rounded overflow-hidden">
+              <iframe id="map-iframe" class="w-full h-full" src="https://www.google.com/maps?q=Calama&hl=es&gl=cl&output=embed" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+            </div>
+          </div>
+
+          <!-- Mensaje de despacho y fecha estimada -->
+          <div id="delivery-summary-block" class="mt-4">
+            <div class="flex items-center justify-between mb-2">
+              <h4 class="text-base font-semibold text-gray-800">Despacho</h4>
+              <span id="delivery-price" class="text-base font-semibold">$2.000</span>
+            </div>
+            <div class="text-sm text-gray-600">Fecha estimada de entrega</div>
+            <div id="delivery-estimate" class="mt-1 bg-green-50 border border-green-200 text-gray-900 rounded px-3 py-2">
+              <span id="delivery-estimate-text"></span>
+            </div>
+          </div>
+
+          <!-- Botón para continuar al pago desde despacho -->
+          <div class="mt-3 flex justify-center">
+            <button id="delivery-continue" type="button" class="px-5 py-2 bg-blue-600 text-white rounded hover:bg-blue-700" onclick="continuarDespacho()">Continuar</button>
+          </div>
+
+          <p id="addressSavedMsg" class="text-sm text-green-600 mt-2 hidden">Dirección guardada correctamente.</p>
+        </div>
+      </div>
+    </div>
+
+    <div id="carrito-view" class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <!-- Lista de productos -->
+      <div class="lg:col-span-2 bg-white rounded-lg shadow p-6">
+        <div id="carrito-items-list" class="space-y-4">
+          <!-- Items renderizados por JS -->
+        </div>
+      </div>
+
+      <!-- Resumen -->
+      <div class="bg-white rounded-lg shadow p-6 h-fit">
+        <h2 class="text-xl font-semibold mb-4">Resumen de compra</h2>
+        <div class="flex justify-between text-gray-700 mb-2">
+          <span>Subtotal de productos</span>
+          <span id="carrito-subtotal" class="font-bold">$0</span>
+        </div>
+        <div id="carrito-envio-line" class="flex justify-between text-gray-700 mb-2 hidden">
+          <span>Costo de envío</span>
+          <span id="carrito-envio" class="font-bold">$0</span>
+        </div>
+        <div class="flex justify-between text-gray-900 font-semibold mt-2">
+          <span>Total</span>
+          <span id="carrito-total">$0</span>
+        </div>
+        <button id="btnCheckoutPage" class="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded hidden" onclick="pagar()">
+          Pagar
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <script type="module">
+    import { trackEvent } from '/src/scripts/utils/analytics.js';
+    import { formatRutUI, formatRutFromDigits, cleanRutInput, digitsOnly } from '/src/scripts/utils/rut.js';
+    const ENVIO_COSTO = 2000;
+    const formatearPrecio = (precio) => precio.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+
+    // Gestión de pasos del checkout (secuencial)
+    const Steps = {
+      get() { try { return JSON.parse(localStorage.getItem('checkoutSteps')) || {}; } catch { return {}; } },
+      set(s) { try { localStorage.setItem('checkoutSteps', JSON.stringify(s)); } catch {} },
+      mark(key, val = true) { const s = Steps.get(); s[key] = !!val; Steps.set(s); },
+      isCompleted(n) { const s = Steps.get(); return !!s[`step${n}`]; },
+      resetAfter(n) { const s = Steps.get(); for (let i = n + 1; i <= 3; i++) s[`step${i}`] = false; Steps.set(s); }
+    };
+
+    const getCarrito = () => {
+      try {
+        const c = JSON.parse(localStorage.getItem('carrito')) || [];
+        return Array.isArray(c) ? c : [];
+      } catch {
+        return [];
+      }
+    };
+
+    const setCarrito = (carrito) => {
+      localStorage.setItem('carrito', JSON.stringify(carrito));
+    };
+
+    const calcularSubtotal = (carrito) => carrito.reduce((acc, it) => acc + Number(it.precio_venta ?? it.precio) * it.cantidad, 0);
+
+    const irADetalle = (id) => {
+      // La página de detalle acepta ID numérico o slug; usamos ID
+      window.location.href = `/productos/${id}`;
+    };
+9
+    const eliminarItem = (id) => {
+      const carrito = getCarrito().filter(i => String(i.id) !== String(id));
+      setCarrito(carrito);
+      render();
+      loadStockForItems();
+    };
+
+    const mostrarSectionLoginGuest = () => {
+      const sec = document.getElementById('checkout-login-section');
+      const secEntrega = document.getElementById('checkout-delivery-section');
+      const secPago = document.getElementById('checkout-payment-section');
+      if (!sec) return;
+      // Mostrar login y ocultar otras secciones
+      sec.classList.remove('hidden');
+      // Mostrar mensaje si la sesión está iniciada
+      try { updateLoginSessionStatus(); } catch {}
+      if (secEntrega) secEntrega.classList.add('hidden');
+      if (secPago) secPago.classList.add('hidden');
+      const pagarBtn = document.getElementById('btnCheckoutPage');
+      if (pagarBtn) pagarBtn.classList.add('hidden');
+      try {
+        const top = sec.getBoundingClientRect().top + window.scrollY - 16;
+        window.scrollTo({ top, behavior: 'smooth' });
+      } catch {}
+    };
+
+    const continuarComoInvitado = () => {
+      Steps.mark('step1', true);
+      Steps.resetAfter(1);
+      try { trackEvent('checkout_continue_guest'); } catch {}
+      mostrarSectionTipoEntrega();
+    };
+
+    const mostrarSectionTipoEntrega = () => {
+      const secLogin = document.getElementById('checkout-login-section');
+      const secEntrega = document.getElementById('checkout-delivery-section');
+      const secAddress = document.getElementById('checkout-address-section');
+      const secPago = document.getElementById('checkout-payment-section');
+      // Bloquear avance si el paso 1 no está completo
+      if (!Steps.isCompleted(1)) { mostrarSectionLoginGuest(); return; }
+      if (secLogin) secLogin.classList.add('hidden');
+      if (secPago) secPago.classList.add('hidden');
+      if (secEntrega) {
+        secEntrega.classList.remove('hidden');
+        const pagarBtn = document.getElementById('btnCheckoutPage');
+        if (pagarBtn) pagarBtn.classList.add('hidden');
+        try {
+          const top = secEntrega.getBoundingClientRect().top + window.scrollY - 16;
+          window.scrollTo({ top, behavior: 'smooth' });
+        } catch {}
+        try {
+          const saved = localStorage.getItem('checkoutEntrega');
+          if (saved === 'retiro' || saved === 'despacho') seleccionarTipoEntrega(saved, false);
+        } catch {}
+      }
+      if (secAddress) secAddress.classList.add('hidden');
+    };
+
+    const seleccionarTipoEntrega = (tipo, advance = true) => {
+      try { localStorage.setItem('checkoutEntrega', tipo); } catch {}
+      // Mensaje y botón de continuar removidos; ajustamos flujo automáticamente.
+
+      const retiroBtn = document.getElementById('opcion-retiro');
+      const despachoBtn = document.getElementById('opcion-despacho');
+      const retiroCheck = document.getElementById('check-retiro');
+      const despachoCheck = document.getElementById('check-despacho');
+      const secAddress = document.getElementById('checkout-address-section');
+
+      const activar = (btn, check) => {
+        if (!btn || !check) return;
+        btn.classList.remove('border-gray-200');
+        btn.classList.add('border-green-500','bg-green-50');
+        btn.setAttribute('aria-pressed','true');
+        check.classList.remove('hidden');
+      };
+      const desactivar = (btn, check) => {
+        if (!btn || !check) return;
+        btn.classList.add('border-gray-200');
+        btn.classList.remove('border-green-500','bg-green-50');
+        btn.setAttribute('aria-pressed','false');
+        check.classList.add('hidden');
+      };
+
+      if (tipo === 'retiro') {
+        try { trackEvent('checkout_select_delivery', { type: 'retiro' }); } catch {}
+        activar(retiroBtn, retiroCheck);
+        desactivar(despachoBtn, despachoCheck);
+        if (secAddress) secAddress.classList.add('hidden');
+        actualizarEnvioYTotal();
+        // Para retiro, marcar paso 2 como completo y permitir avanzar
+        Steps.mark('step2', true);
+        Steps.resetAfter(2);
+        if (advance) { mostrarSectionPago(); setTimeout(forceShowPago, 50); }
+      } else {
+        try { trackEvent('checkout_select_delivery', { type: 'despacho' }); } catch {}
+        activar(despachoBtn, despachoCheck);
+        desactivar(retiroBtn, retiroCheck);
+        if (secAddress) {
+          secAddress.classList.remove('hidden');
+          // Desplazar suavemente al formulario de dirección al seleccionar despacho
+          try {
+            const top = secAddress.getBoundingClientRect().top + window.scrollY - 16;
+            window.scrollTo({ top, behavior: 'smooth' });
+          } catch {}
+        }
+        actualizarMensajeDespacho();
+        actualizarEnvioYTotal();
+        // Para despacho, requerir confirmación de dirección antes de completar el paso
+        Steps.mark('step2', false);
+      }
+    };
+
+    const buscarEnMapa = () => {
+      const q = document.getElementById('dir-buscar')?.value?.trim();
+      const iframe = document.getElementById('map-iframe');
+      if (!iframe) return;
+      const base = 'https://www.google.com/maps?q=';
+      const ciudad = 'Calama';
+      const query = q ? encodeURIComponent(`${q}, ${ciudad}`) : encodeURIComponent(ciudad);
+      iframe.src = `${base}${query}&hl=es&gl=cl&output=embed`;
+      // Se avanza solo al presionar Continuar (validación previa)
+    };
+
+    const guardarDireccion = () => {
+      const buscar = document.getElementById('dir-buscar')?.value?.trim() || '';
+      const calle = document.getElementById('dir-calle')?.value?.trim() || '';
+      const numero = document.getElementById('dir-numero')?.value?.trim() || '';
+      const depto = document.getElementById('dir-depto')?.value?.trim() || '';
+      const adicional = document.getElementById('dir-adicional')?.value?.trim() || '';
+      if (!buscar) {
+        alert('Por favor ingresa la dirección con calle y número para ubicar el mapa.');
+        return;
+      }
+      if (!calle || !numero) {
+        alert('Calle y Número son obligatorios.');
+        return;
+      }
+      const data = { buscar, calle, numero, depto, adicional };
+      try { localStorage.setItem('checkoutAddress', JSON.stringify(data)); } catch {}
+      const msg = document.getElementById('addressSavedMsg');
+      if (msg) msg.classList.remove('hidden');
+      return data;
+    };
+
+    const validarDireccionDespacho = () => {
+      const buscar = document.getElementById('dir-buscar')?.value?.trim() || '';
+      const calle = document.getElementById('dir-calle')?.value?.trim() || '';
+      const numero = document.getElementById('dir-numero')?.value?.trim() || '';
+      const depto = document.getElementById('dir-depto')?.value?.trim() || '';
+      const adicional = document.getElementById('dir-adicional')?.value?.trim() || '';
+      if (!calle || !numero) {
+        alert('Calle y Número son obligatorios para despacho.');
+        return null;
+      }
+      return { buscar, calle, numero, depto, adicional };
+    };
+
+    const continuarDespacho = async () => {
+      // Usar la función existente para obtener y validar la dirección
+      const d = guardarDireccion();
+      if (!d) return;
+      try {
+        const { isLoggedIn, token, user } = getAuth();
+        const idUsuario = user && (user.id_usuario || user.id || user.idUsuario);
+        if (isLoggedIn && token && idUsuario) {
+          const API = computeApiUrl();
+          const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
+          const targetId = window.__latestDespachoId;
+          if (targetId) {
+            await fetch(`${API}/despachos/${targetId}`, { method: 'PUT', headers, body: JSON.stringify(d) });
+          } else {
+            const resp = await fetch(`${API}/despachos/usuario/${idUsuario}`, { method: 'POST', headers, body: JSON.stringify(d) });
+            try { const created = await resp.json(); window.__latestDespachoId = created?.id_despacho || created?.id; } catch {}
+          }
+        }
+      } catch (e) { console.warn('No se pudo guardar despacho en perfil:', e); }
+      Steps.mark('step2', true);
+      Steps.resetAfter(2);
+      const msg = document.getElementById('addressSavedMsg');
+      if (msg) msg.classList.remove('hidden');
+      mostrarSectionPago(); setTimeout(forceShowPago, 50);
+    };
+
+    // Utilidades de despacho (mensaje y costos)
+    const calcularFechaDespacho = () => {
+      const meses = ['Ene.','Feb.','Mar.','Abr.','May.','Jun.','Jul.','Ago.','Sep.','Oct.','Nov.','Dic.'];
+      const d = new Date();
+      d.setDate(d.getDate() + 2);
+      const dia = d.getDate();
+      const mes = meses[d.getMonth()];
+      return `${dia} de ${mes} 09:00 a 17:00 horas`;
+    };
+
+    const actualizarMensajeDespacho = () => {
+      try {
+        const entrega = localStorage.getItem('checkoutEntrega');
+        if (entrega !== 'despacho') return;
+      } catch { return; }
+      const precioEl = document.getElementById('delivery-price');
+      const txtEl = document.getElementById('delivery-estimate-text');
+      if (precioEl) precioEl.textContent = `$${formatearPrecio(ENVIO_COSTO)}`;
+      if (txtEl) txtEl.textContent = calcularFechaDespacho();
+    };
+
+    const actualizarEnvioYTotal = () => {
+      const envioLine = document.getElementById('carrito-envio-line');
+      const envioEl = document.getElementById('carrito-envio');
+      const totalEl = document.getElementById('carrito-total');
+      const carrito = getCarrito();
+      const subtotal = calcularSubtotal(carrito);
+      let envio = 0;
+      try {
+        const entrega = localStorage.getItem('checkoutEntrega');
+        if (entrega === 'despacho') envio = ENVIO_COSTO;
+      } catch {}
+      if (envioLine) {
+        if (envio > 0) envioLine.classList.remove('hidden'); else envioLine.classList.add('hidden');
+      }
+      if (envioEl) envioEl.textContent = `$${formatearPrecio(envio)}`;
+      if (totalEl) totalEl.textContent = `$${formatearPrecio(subtotal + envio)}`;
+    };
+
+    const forceShowPago = () => {
+      const secLogin = document.getElementById('checkout-login-section');
+      const secEntrega = document.getElementById('checkout-delivery-section');
+      const secPago = document.getElementById('checkout-payment-section');
+      if (secLogin) secLogin.classList.add('hidden');
+      if (secEntrega) secEntrega.classList.add('hidden');
+      if (secPago) {
+        secPago.classList.remove('hidden');
+        const pagarBtn = document.getElementById('btnCheckoutPage');
+        if (pagarBtn) pagarBtn.classList.remove('hidden');
+        try {
+          const top = secPago.getBoundingClientRect().top + window.scrollY - 16;
+          window.scrollTo({ top, behavior: 'smooth' });
+        } catch {}
+      }
+    };
+
+    const mostrarSectionPago = () => {
+      const secLogin = document.getElementById('checkout-login-section');
+      const secEntrega = document.getElementById('checkout-delivery-section');
+      const secPago = document.getElementById('checkout-payment-section');
+      // Permitir avanzar si:
+      // - Paso 2 está marcado como completo
+      // - O si hay selección de entrega válida en localStorage
+      //   - 'retiro' siempre permite
+      //   - 'despacho' permite si Calle y Número están completos
+      let canAdvance = Steps.isCompleted(2);
+      try {
+        const entrega = localStorage.getItem('checkoutEntrega');
+        if (entrega === 'retiro') {
+          canAdvance = true;
+        } else if (entrega === 'despacho') {
+          const calle = document.getElementById('dir-calle')?.value?.trim();
+          const numero = document.getElementById('dir-numero')?.value?.trim();
+          if (calle && numero) canAdvance = true;
+        }
+      } catch {}
+      if (!canAdvance) { mostrarSectionTipoEntrega(); return; }
+      // Reconocer sesión y prellenar datos al entrar a Pago
+      try { updateLoginSessionStatus(); } catch {}
+      try { prefillOnPaymentIfLoggedIn(); } catch {}
+      if (secLogin) secLogin.classList.add('hidden');
+      if (secEntrega) secEntrega.classList.add('hidden');
+      if (secPago) {
+        secPago.classList.remove('hidden');
+        const pagarBtn = document.getElementById('btnCheckoutPage');
+        if (pagarBtn) pagarBtn.classList.remove('hidden');
+        try {
+          const top = secPago.getBoundingClientRect().top + window.scrollY - 16;
+          window.scrollTo({ top, behavior: 'smooth' });
+        } catch {}
+      }
+      // Fallback defensivo por si algún check falla
+      setTimeout(forceShowPago, 50);
+    };
+
+    const prefillOnPaymentIfLoggedIn = async () => {
+      const { isLoggedIn, token, user } = getAuth();
+      if (!isLoggedIn && !token && !user) return;
+      // Marcar paso 1 como completo si hay sesión
+      try { Steps.mark('step1', true); } catch {}
+      const API = computeApiUrl();
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      // Prefill de datos personales (prioridad a datos del backend si hay token)
+      try {
+        if (token && user?.id_usuario) {
+          const uResp = await fetch(`${API}/usuarios/${user.id_usuario}`, { headers });
+          if (uResp.ok) {
+            const uData = await safeJson(uResp);
+            if (uData) prefillPersonalData(uData);
+          } else {
+            prefillPersonalData(user || {});
+          }
+        } else {
+          prefillPersonalData(user || {});
+        }
+      } catch { prefillPersonalData(user || {}); }
+
+      // Fallback: si quedaron vacíos, intentar con datos guardados localmente
+      try {
+        const nombreEl = document.getElementById('dp-nombre');
+        const emailEl = document.getElementById('dp-email');
+        const rutEl = document.getElementById('dp-rut');
+        const telEl = document.getElementById('dp-telefono');
+        const empty = (el) => !el || !String(el.value || '').trim();
+        if ((empty(nombreEl) || empty(emailEl) || empty(rutEl) || empty(telEl))) {
+          const raw = localStorage.getItem('user') || localStorage.getItem('usuario') || '';
+          if (raw) {
+            try { const uLocal = JSON.parse(raw); if (uLocal) prefillPersonalData(uLocal); } catch {}
+          }
+        }
+      } catch {}
+
+      // Fallback extra: decodificar JWT para rellenar email o RUT si aún faltan
+      try {
+        if (token) {
+          const emailEl = document.getElementById('dp-email');
+          const email2El = document.getElementById('dp-email2');
+          const rutEl = document.getElementById('dp-rut');
+          const empty = (el) => !el || !String(el.value || '').trim();
+          const base64UrlToJson = (b64) => {
+            try {
+              const b64Norm = b64.replace(/-/g, '+').replace(/_/g, '/');
+              const json = atob(b64Norm);
+              return JSON.parse(json);
+            } catch { return null; }
+          };
+          const parts = String(token).split('.');
+          if (parts.length === 3) {
+            const payload = base64UrlToJson(parts[1]);
+            const sub = payload?.sub || '';
+            if (sub) {
+              if (sub.includes('@')) {
+                if (emailEl && empty(emailEl)) emailEl.value = sub;
+                if (email2El && empty(email2El)) email2El.value = sub;
+              } else {
+                const digits = String(sub).replace(/\D/g, '');
+                if (rutEl && empty(rutEl) && digits) rutEl.value = formatRutFromDigits(digits);
+              }
+            }
+          }
+        }
+      } catch {}
+
+      // Fallback extra: usar 'nombreUsuario' guardado si el nombre sigue vacío
+      try {
+        const nombreEl = document.getElementById('dp-nombre');
+        const empty = (el) => !el || !String(el.value || '').trim();
+        if (nombreEl && empty(nombreEl)) {
+          const nombreUsuario = localStorage.getItem('nombreUsuario');
+          if (nombreUsuario && /[a-zA-ZÁÉÍÓÚÑáéíóúñ]/.test(nombreUsuario)) {
+            nombreEl.value = nombreUsuario;
+          }
+        }
+      } catch {}
+    };
+
+    const goCheckout = () => {
+      const carrito = getCarrito();
+      if (!carrito.length) {
+        alert('Tu carrito está vacío. Agrega productos antes de comprar.');
+        return;
+      }
+      mostrarSectionLoginGuest();
+    };
+
+    const render = () => {
+      const list = document.getElementById('carrito-items-list');
+      const subtotalEl = document.getElementById('carrito-subtotal');
+      const carrito = getCarrito();
+
+      if (!list || !subtotalEl) return;
+
+      if (carrito.length === 0) {
+        list.innerHTML = '<p class="text-gray-500">Tu carrito está vacío.</p>';
+        subtotalEl.textContent = '$0';
+        return;
+      }
+
+      list.innerHTML = carrito.map(item => `
+        <div class="flex items-center gap-4 border rounded-md p-3">
+          <button aria-label="Ver detalle" onclick="irADetalle('${item.id ?? item.id_producto}')" class="shrink-0">
+            <img src="${item.imagen_url || '/images/logos/logo_bn.webp'}" onerror="this.src='/images/logos/logo_bn.webp';this.onerror=null;" alt="${item.nombre}" class="w-16 h-16 object-cover rounded" loading="lazy" decoding="async">
+          </button>
+          <div class="flex-1">
+            <button class="text-left" aria-label="Ir al detalle" onclick="irADetalle('${item.id ?? item.id_producto}')">
+              <p class="text-sm font-medium text-gray-900 hover:text-blue-600">${item.nombre}</p>
+            </button>
+            <p class="text-xs text-gray-600">Precio: $${formatearPrecio(Number(item.precio_venta ?? item.precio))}</p>
+            <p class="text-xs text-gray-600">Stock: <span id="stock-${item.id ?? item.id_producto}">${item.stock_max ?? '-'}</span></p>
+          </div>
+          <div class="ml-auto flex items-center gap-3">
+            <div class="flex items-center border rounded w-28 overflow-hidden">
+              <button aria-label="Menos" onclick="decQty('${item.id ?? item.id_producto}')" class="w-9 h-8 text-gray-700" ${Number(item.cantidad||1) <= 1 ? 'disabled' : ''}>-</button>
+              <div id="qty-${item.id ?? item.id_producto}" class="flex-1 text-center text-sm">${item.cantidad}</div>
+              <button aria-label="Más" onclick="incQty('${item.id ?? item.id_producto}')" class="w-9 h-8 text-gray-700" ${item.stock_max && Number(item.cantidad||1) >= Number(item.stock_max) ? 'disabled' : ''}>+</button>
+            </div>
+            <div class="text-sm font-semibold min-w-[90px] text-right">$${formatearPrecio(Number(item.precio_venta ?? item.precio) * item.cantidad)}</div>
+            <button aria-label="Eliminar" onclick="eliminarItem('${item.id ?? item.id_producto}')" class="text-red-600 hover:text-red-700 ml-2">&times;</button>
+          </div>
+        </div>
+      `).join('');
+
+      const subtotal = calcularSubtotal(carrito);
+      subtotalEl.textContent = `$${formatearPrecio(subtotal)}`;
+      actualizarEnvioYTotal();
+    };
+
+    document.addEventListener('DOMContentLoaded', () => {
+      // Render inicial
+      render();
+
+      // Iniciar flujo mostrando inicio de sesión si hay productos
+      try {
+        if (getCarrito().length) mostrarSectionLoginGuest();
+      } catch {}
+
+      // Actualizar estado de sesión visible en paso de login
+      try { updateLoginSessionStatus(); } catch {}
+
+      // Cargar Google Maps Places (si hay API key disponible)
+      loadGoogleMaps();
+
+      // Inicializar estimación si ya está seleccionado despacho
+      actualizarMensajeDespacho();
+      actualizarEnvioYTotal();
+
+      // Si hay sesión iniciada, continuar con cuenta y prellenar datos
+      try { autoflowIfLoggedIn(); } catch {}
+      // Prefill inmediato, aun si “Pago” está oculto por orden de pasos
+      try { forcePrefillNow(); } catch {}
+
+      // Asegurar que el botón "Continuar" en despacho dispare el avance
+      try {
+        const delBtn = document.getElementById('delivery-continue');
+        if (delBtn) delBtn.addEventListener('click', continuarDespacho);
+      } catch {}
+      // Formato y validación de RUT y teléfono para invitados
+      try {
+        const rutEl = document.getElementById('dp-rut');
+        if (rutEl) {
+          rutEl.addEventListener('input', () => {
+            const formatted = formatRutUI(rutEl.value || '');
+            rutEl.value = formatted;
+          });
+          rutEl.addEventListener('blur', () => {
+            const re = /^\d{1,2}\.\d{3}\.\d{3}-[\dkK]$/;
+            rutEl.setCustomValidity(re.test(rutEl.value || '') ? '' : 'Formato: 12.345.678-5');
+          });
+        }
+        const telEl = document.getElementById('dp-telefono');
+        if (telEl) {
+          telEl.addEventListener('input', () => {
+            const digits = (telEl.value || '').replace(/\D/g, '').slice(0, 8);
+            telEl.value = digits;
+          });
+        }
+      } catch {}
+    });
+
+    // Exponer funciones globales para handlers inline
+    window.eliminarItem = eliminarItem;
+    window.goCheckout = goCheckout;
+    window.continuarComoInvitado = continuarComoInvitado;
+    window.mostrarSectionLoginGuest = mostrarSectionLoginGuest;
+    window.mostrarSectionTipoEntrega = mostrarSectionTipoEntrega;
+    window.mostrarSectionPago = mostrarSectionPago;
+    window.seleccionarTipoEntrega = seleccionarTipoEntrega;
+    window.buscarEnMapa = buscarEnMapa;
+    window.guardarDireccion = guardarDireccion;
+    window.continuarDespacho = continuarDespacho;
+    window.irADetalle = irADetalle;
+    const stockCache = {};
+    const getStock = async (id) => {
+      const key = String(id);
+      if (stockCache[key] !== undefined) return stockCache[key];
+      const API = computeApiUrl();
+      try {
+        const r = await fetch(`${API}/productos/${id}`);
+        if (r.ok) {
+          const p = await safeJson(r);
+          const s = Number(p?.cantidad_disponible ?? p?.stock ?? p?.inventario?.cantidad ?? 0);
+          stockCache[key] = s; return s;
+        }
+      } catch {}
+      stockCache[key] = 0; return 0;
+    };
+    const findItem = (id) => {
+      const c = getCarrito();
+      const idx = c.findIndex(i => String(i.id ?? i.id_producto) === String(id));
+      return { c, idx };
+    };
+    window.incQty = async (id) => {
+      const { c, idx } = findItem(id);
+      if (idx < 0) return;
+      const it = c[idx];
+      const max = Number(it.stock_max ?? 0);
+      const qty = Number(it.cantidad || 1);
+      let next = qty + 1;
+      if (max > 0 && next > max) {
+        next = max;
+        alert(`Stock máximo ${max}`);
+      }
+      it.cantidad = next;
+      c[idx] = it; setCarrito(c); render();
+    };
+    window.decQty = (id) => {
+      const { c, idx } = findItem(id);
+      if (idx < 0) return;
+      const it = c[idx]; const qty = Number(it.cantidad || 1);
+      if (qty <= 1) return;
+      it.cantidad = qty - 1;
+      c[idx] = it; setCarrito(c); render();
+    };
+    const loadStockForItems = async () => {
+      const c = getCarrito();
+      const ids = c.map(it => Number(it.id ?? it.id_producto)).filter(Boolean);
+      try {
+        const stocks = await Promise.all(ids.map(id => getStock(id)));
+        for (let i = 0; i < c.length; i++) {
+          const s = Number(stocks[i] ?? 0);
+          c[i].stock_max = s;
+        }
+      } catch {}
+      setCarrito(c);
+      render();
+    };
+    window.pagar = async () => {
+      const carrito = getCarrito();
+      if (!carrito.length) {
+        alert('Tu carrito está vacío. Agrega productos antes de comprar.');
+        return;
+      }
+      try { trackEvent('checkout_pay_click', { items: carrito.length }); } catch {}
+
+      try {
+        const ok = await verificarStockCarrito(carrito);
+        if (!ok) return;
+      } catch (e) {
+        console.warn('No se pudo verificar stock previo al pago:', e);
+      }
+
+      // Identificar si es usuario logueado o invitado
+      const { user, token } = getAuth();
+      const idUsuario = user && (user.id_usuario || user.id || user.idUsuario);
+
+      // Construir detalles de la venta desde el carrito
+      const detalles = carrito.map(it => ({
+        id_producto: Number(it.id ?? it.id_producto),
+        cantidad: Number(it.cantidad || 1),
+        precio_unitario: Number(it.precio_venta ?? it.precio ?? 0)
+      }));
+
+      // Calcular total (incluye costo de envío si corresponde)
+      const subtotal = calcularSubtotal(carrito);
+      let envio = 0;
+      try { if (localStorage.getItem('checkoutEntrega') === 'despacho') envio = ENVIO_COSTO; } catch {}
+      const total = subtotal + envio;
+
+      const API = computeApiUrl();
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      // Deshabilitar el botón mientras se procesa
+      const btn = document.getElementById('btnCheckoutPage');
+      if (btn) { btn.disabled = true; btn.classList.add('opacity-75'); }
+
+      try {
+        let resp;
+        if (idUsuario) {
+          const entregaTipoAuth = (localStorage.getItem('checkoutEntrega') || 'retiro');
+          const bodyAuth = {
+            id_usuario: Number(idUsuario),
+            total_venta: Number(total),
+            estado: 'pendiente',
+            observaciones: `${entregaTipoAuth}${envio > 0 ? ` | envío ${ENVIO_COSTO}` : ''}`,
+            detalles
+          };
+          resp = await fetch(`${API}/ventas/`, { method: 'POST', headers, body: JSON.stringify(bodyAuth) });
+        } else {
+          // Flujo invitado: recolectar datos esenciales del cliente y entrega
+          const getVal = (id) => {
+            const el = document.getElementById(id);
+            return el && typeof el.value === 'string' ? el.value.trim() : '';
+          };
+          const entregaTipo = (localStorage.getItem('checkoutEntrega') || 'retiro');
+          const guestInfo = {
+            nombre: getVal('dp-nombre') || 'Invitado',
+            rut: getVal('dp-rut') || '',
+            email: getVal('dp-email') || getVal('dp-email2') || '',
+            telefono: getVal('dp-telefono') || '',
+            entrega: entregaTipo,
+            direccion: entregaTipo === 'despacho' ? {
+              buscar: getVal('dir-buscar'),
+              calle: getVal('dir-calle'),
+              numero: getVal('dir-numero'),
+              depto: getVal('dir-depto'),
+              adicional: getVal('dir-adicional')
+            } : null
+          };
+          const bodyGuest = {
+            total_venta: Number(total),
+            estado: 'pendiente',
+            observaciones: envio > 0 ? `Incluye costo de envío ${ENVIO_COSTO}` : undefined,
+            detalles,
+            guest_info: guestInfo
+          };
+          try { localStorage.setItem('checkoutGuest', JSON.stringify(guestInfo)); } catch {}
+          // Para invitado no enviamos Authorization
+          const headersGuest = { 'Content-Type': 'application/json' };
+          resp = await fetch(`${API}/ventas/guest`, { method: 'POST', headers: headersGuest, body: JSON.stringify(bodyGuest) });
+        }
+        let venta;
+        if (resp.ok) {
+          venta = await resp.json();
+        } else {
+          try {
+            const txt = await resp.text();
+            let msg = 'No se pudo procesar la compra. Inténtalo nuevamente.';
+            try { const j = JSON.parse(txt); msg = j?.detail || msg; } catch { msg = txt || msg; }
+            alert(String(msg));
+          } catch {
+            alert('No se pudo procesar la compra. Inténtalo nuevamente.');
+          }
+          return;
+        }
+        // Vaciar carrito inmediatamente tras registrar la venta
+        try {
+          localStorage.removeItem('carrito');
+          localStorage.removeItem('checkout_items');
+          localStorage.removeItem('checkoutEntrega');
+        } catch {}
+        try { window.dispatchEvent(new Event('carrito:changed')); } catch {}
+        render();
+
+        // Iniciar pago (simulado) y redirigir a retorno
+        try {
+          const initResp = await fetch(`${API}/pagos/iniciar`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id_venta: Number(venta?.id_venta || venta?.id), monto: Number(total), moneda: 'CLP' })
+          });
+          if (initResp.ok) {
+            const initData = await initResp.json();
+            const redirectUrl = initData?.redirect_url;
+            if (redirectUrl) {
+              window.location.href = redirectUrl;
+              return;
+            }
+          }
+        } catch (e) {
+          console.warn('No se pudo iniciar pago simulado:', e);
+        }
+        // Fallback: ir a compras
+        try { trackEvent('purchase_complete', { id: venta?.id_venta || venta?.id, total }); } catch {}
+        window.location.href = '/?paid=1';
+      } catch (e) {
+        console.error('Error inesperado al procesar pago:', e);
+        alert('Error inesperado al procesar pago. Inténtalo nuevamente.');
+        return;
+      } finally {
+        if (btn) { btn.disabled = false; btn.classList.remove('opacity-75'); }
+      }
+    };
+
+    // Integración Google Places Autocomplete
+    let placesAutocomplete;
+    const initPlacesAutocomplete = () => {
+      const input = document.getElementById('dir-buscar');
+      if (!input || !window.google || !google.maps.places) return;
+      const centerCalama = new google.maps.LatLng(-22.455, -68.929);
+      const circle = new google.maps.Circle({ center: centerCalama, radius: 20000 });
+      const options = {
+        fields: ['address_components','geometry','formatted_address'],
+        types: ['address'],
+        componentRestrictions: { country: 'cl' },
+        bounds: circle.getBounds(),
+      };
+      placesAutocomplete = new google.maps.places.Autocomplete(input, options);
+      placesAutocomplete.addListener('place_changed', () => {
+        const place = placesAutocomplete.getPlace();
+        if (!place || !place.address_components) return;
+        const comps = place.address_components;
+        const get = (type) => comps.find(c => c.types.includes(type))?.long_name || '';
+        const calle = get('route');
+        const numero = get('street_number');
+        if (calle) {
+          const calleEl = document.getElementById('dir-calle');
+          if (calleEl) calleEl.value = calle;
+        }
+        if (numero) {
+          const numEl = document.getElementById('dir-numero');
+          if (numEl) numEl.value = numero;
+        }
+        if (place.geometry?.location) {
+          const lat = place.geometry.location.lat();
+          const lng = place.geometry.location.lng();
+          const iframe = document.getElementById('map-iframe');
+          if (iframe) iframe.src = `https://www.google.com/maps?q=${lat},${lng}&z=16&hl=es&gl=cl&output=embed`;
+        } else {
+          buscarEnMapa();
+        }
+      });
+    };
+
+    const loadGoogleMaps = () => {
+      try {
+        if (window.google && google.maps && google.maps.places) { initPlacesAutocomplete(); return; }
+      } catch {}
+      const key = window.GOOGLE_MAPS_API_KEY || '';
+      if (!key) { console.warn('Google Maps API key no disponible en window.GOOGLE_MAPS_API_KEY'); return; }
+      const s = document.createElement('script');
+      s.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(key)}&libraries=places&language=es&region=CL`;
+      s.async = true;
+      s.onload = initPlacesAutocomplete;
+      document.head.appendChild(s);
+    };
+
+    // ====== Auto-fill con sesión de usuario ======
+    const getAuth = () => {
+      try {
+        const ss = window.sessionStorage;
+        const ls = window.localStorage;
+        const isLoggedIn = (ss.getItem('isLoggedIn') === 'true') || (ls.getItem('isLoggedIn') === 'true');
+        const token = ss.getItem('token') || ls.getItem('token') || ls.getItem('access_token') || '';
+        const userStr = ss.getItem('user') || ls.getItem('user') || ss.getItem('usuario') || ls.getItem('usuario') || '{}';
+        const user = JSON.parse(userStr || '{}');
+        return { isLoggedIn, token, user };
+      } catch { return { isLoggedIn: false, token: '', user: {} }; }
+    };
+
+    const updateLoginSessionStatus = async () => {
+      const { isLoggedIn, user } = getAuth();
+      const statusEl = document.getElementById('login-session-status');
+      const userEl = document.getElementById('login-session-user');
+      const loginCard = document.getElementById('login-option-card');
+      const guestCard = document.getElementById('guest-option-card');
+      if (!statusEl) return;
+      if (isLoggedIn) {
+        statusEl.classList.remove('hidden');
+        const nombre = (user?.nombre ?? user?.name ?? '');
+        const apellido = (user?.apellido ?? user?.apellidos ?? user?.last_name ?? '');
+        const nombreCompleto = [nombre, apellido].filter(Boolean).join(' ') || (localStorage.getItem('nombreUsuario') || '');
+        if (userEl) userEl.textContent = nombreCompleto ? `(${nombreCompleto})` : '';
+        if (loginCard) loginCard.classList.add('hidden');
+        if (guestCard) guestCard.classList.add('hidden');
+        Steps.mark('step1', true);
+
+        // Prellenar datos personales de inmediato al reconocer sesión
+        try {
+          const API = computeApiUrl();
+          const headers = { 'Content-Type': 'application/json' };
+          const token = (sessionStorage.getItem('token') || localStorage.getItem('token') || localStorage.getItem('access_token') || '');
+          if (token) headers['Authorization'] = `Bearer ${token}`;
+          if (token && user?.id_usuario) {
+            const uResp = await fetch(`${API}/usuarios/${user.id_usuario}`, { headers });
+            if (uResp.ok) {
+              const uData = await safeJson(uResp);
+              if (uData) prefillPersonalData(uData);
+            } else {
+              prefillPersonalData(user || {});
+            }
+          } else {
+            prefillPersonalData(user || {});
+          }
+        } catch { prefillPersonalData(user || {}); }
+
+        // Si el carrito está vacío, igual muestra el formulario de Pago para ver los datos
+        try {
+          const tieneItems = (getCarrito().length > 0);
+          if (!tieneItems) {
+            Steps.mark('step2', true);
+            Steps.resetAfter(2);
+            mostrarSectionPago();
+          }
+        } catch {}
+      } else {
+        statusEl.classList.add('hidden');
+        if (loginCard) loginCard.classList.remove('hidden');
+        if (guestCard) guestCard.classList.remove('hidden');
+        Steps.mark('step1', false);
+      }
+    };
+
+    const computeApiUrl = () => {
+      try {
+        const env = window.__ENV__ || {};
+        return env.PUBLIC_API_URL || env.PUBLIC_API_URL_PRODUCTION || 'http://localhost:8000/api';
+      } catch { return 'http://localhost:8000/api'; }
+    };
+
+    const safeJson = async (resp) => { try { return await resp.json(); } catch { return null; } };
+
+    const prefillPersonalData = (u) => {
+      try {
+        const nombreEl = document.getElementById('dp-nombre');
+        const rutEl = document.getElementById('dp-rut');
+        const telEl = document.getElementById('dp-telefono');
+        const emailEl = document.getElementById('dp-email');
+        const email2El = document.getElementById('dp-email2');
+
+        // Nombre y apellido con distintos posibles claves
+        const nombre = u?.nombre ?? u?.name ?? '';
+        const apellido = u?.apellido ?? u?.apellidos ?? u?.last_name ?? '';
+        const nombreCompleto = [nombre, apellido].filter(Boolean).join(' ');
+        if (nombreEl && nombreCompleto) nombreEl.value = nombreCompleto;
+
+        // RUT admitiendo variantes y normalizando a dígitos
+        const rutRaw = u?.rut ?? u?.rut_sin_dv ?? u?.rutDV ?? u?.rut_dv ?? '';
+        const rutDigits = String(rutRaw).replace(/\D/g, '');
+        if (rutEl && rutDigits) rutEl.value = formatRutFromDigits(rutDigits);
+
+        // Teléfono aceptando distintas claves y limpiando prefijo chileno
+        const telRaw = u?.telefono ?? u?.celular ?? u?.phone ?? u?.telefono_contacto ?? '';
+        const tel = String(telRaw).replace(/^\+?56\s?9\s?/, '').replace(/\s+/g, '').replace(/\D/g, '');
+        if (telEl && tel) telEl.value = tel;
+
+        // Email aceptando alias
+        const emailRaw = u?.email ?? u?.correo ?? u?.mail ?? u?.email_address ?? '';
+        if (emailEl && emailRaw) emailEl.value = emailRaw;
+        if (email2El && emailRaw) email2El.value = emailRaw;
+
+        // Fallback adicional: tomar valores previamente guardados en localStorage si siguen vacíos
+        try {
+          const emailStored = (emailEl && !emailEl.value) ? (localStorage.getItem('checkoutEmail') || '') : '';
+          if (emailEl && emailStored) emailEl.value = emailStored;
+          if (email2El && !email2El.value && emailStored) email2El.value = emailStored;
+          const telStored = (telEl && !telEl.value) ? (localStorage.getItem('checkoutTelefono') || '') : '';
+          if (telEl && telStored) telEl.value = telStored.replace(/^\+?56\s?9\s?/, '').replace(/\D/g, '');
+        } catch {}
+      } catch {}
+    };
+
+    const prefillAddress = (d) => {
+      try {
+        const buscarEl = document.getElementById('dir-buscar');
+        const calleEl = document.getElementById('dir-calle');
+        const numeroEl = document.getElementById('dir-numero');
+        const deptoEl = document.getElementById('dir-depto');
+        const adicionalEl = document.getElementById('dir-adicional');
+        if (buscarEl) buscarEl.value = d.buscar || '';
+        if (calleEl) calleEl.value = d.calle || '';
+        if (numeroEl) numeroEl.value = d.numero || '';
+        if (deptoEl) deptoEl.value = d.depto || '';
+        if (adicionalEl) adicionalEl.value = d.adicional || '';
+        // No sincronizar dirección con localStorage
+        // Actualizar mapa
+        const iframe = document.getElementById('map-iframe');
+        const q = d.buscar || [d.calle, d.numero, 'Calama'].filter(Boolean).join(' ');
+        if (iframe && q) iframe.src = `https://www.google.com/maps?q=${encodeURIComponent(q)}&hl=es&gl=cl&output=embed`;
+      } catch {}
+    };
+
+    const verificarStockCarrito = async (carrito) => {
+      try {
+        const API = computeApiUrl();
+        for (const it of carrito) {
+          const id = Number(it.id ?? it.id_producto);
+          if (!id) continue;
+          const resp = await fetch(`${API}/productos/${id}`);
+          if (!resp.ok) {
+            // Producto eliminado o no disponible
+            alert(`El producto con ID ${id} ya no está disponible. Se quitará del carrito.`);
+            setCarrito(getCarrito().filter(i => Number(i.id ?? i.id_producto) !== id));
+      render();
+      loadStockForItems();
+            continue;
+          }
+          const prod = await safeJson(resp);
+          const cantidadDisponible = Number(
+            prod?.cantidad_disponible ?? prod?.stock ?? prod?.inventario?.cantidad ?? prod?.producto?.cantidad_disponible ?? 0
+          );
+          const requerida = Number(it.cantidad || 1);
+          if (cantidadDisponible < requerida) {
+            alert(`Stock insuficiente para "${it.nombre}". Disponible: ${cantidadDisponible}, solicitado: ${requerida}.`);
+            return false;
+          }
+        }
+        return true;
+      } catch (e) {
+        console.warn('Error verificando stock:', e);
+        return true;
+      }
+    };
+
+    const findLatestDespacho = (list) => {
+      if (!Array.isArray(list) || !list.length) return null;
+      // Ordenar por fecha_creacion si existe, si no por id_despacho descendente
+      const sorted = list.slice().sort((a,b) => {
+        const fa = a.fecha_creacion ? new Date(a.fecha_creacion).getTime() : 0;
+        const fb = b.fecha_creacion ? new Date(b.fecha_creacion).getTime() : 0;
+        if (fb !== fa) return fb - fa;
+        return (b.id_despacho || 0) - (a.id_despacho || 0);
+      });
+      return sorted[0];
+    };
+
+    const autoflowIfLoggedIn = async () => {
+      const { isLoggedIn, token, user } = getAuth();
+      // Si no hay sesión, no continuar
+      if (!isLoggedIn && !token && !user?.id_usuario) return;
+
+      // Mostrar secciones de entrega solo si hay ítems en el carrito
+      const carritoTieneItems = getCarrito().length > 0;
+      if (carritoTieneItems) {
+        // Saltar paso de login
+        mostrarSectionTipoEntrega();
+      }
+
+      const API = computeApiUrl();
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      // 1) Cargar usuario y prellenar datos personales si hay token; si no, usar datos locales
+      try {
+        if (token && user?.id_usuario) {
+          const uResp = await fetch(`${API}/usuarios/${user.id_usuario}`, { headers });
+          if (uResp.ok) {
+            const uData = await safeJson(uResp);
+            if (uData) prefillPersonalData(uData);
+          } else {
+            prefillPersonalData(user || {});
+          }
+        } else {
+          prefillPersonalData(user || {});
+        }
+      } catch (e) { 
+        console.warn('No se pudo cargar datos de usuario:', e);
+        prefillPersonalData(user || {});
+      }
+
+      // Si la sesión está reconocida, bloquear edición de RUT y correo; ocultar confirmar email
+      try {
+        const rutEl = document.getElementById('dp-rut');
+        const emailEl = document.getElementById('dp-email');
+        const email2El = document.getElementById('dp-email2');
+        const sessionOk = isLoggedIn || !!token || !!(user && user.id_usuario);
+        if (sessionOk) {
+          if (rutEl) rutEl.readOnly = true;
+          if (emailEl) emailEl.readOnly = true;
+          if (email2El) {
+            try { email2El.required = false; } catch {}
+            if (emailEl && emailEl.value && !email2El.value) email2El.value = emailEl.value;
+            const wrapper = email2El.parentElement;
+            if (wrapper) wrapper.classList.add('hidden');
+          }
+        } else {
+          if (email2El) {
+            try { email2El.required = true; } catch {}
+            const wrapper = email2El.parentElement;
+            if (wrapper) wrapper.classList.remove('hidden');
+          }
+        }
+      } catch {}
+
+      // Fallback adicional: si email o RUT siguen vacíos, intentar desde token y storage
+      try {
+        const nombreEl = document.getElementById('dp-nombre');
+        const rutEl = document.getElementById('dp-rut');
+        const emailEl = document.getElementById('dp-email');
+        const email2El = document.getElementById('dp-email2');
+
+        const getJwtPayload = (tok) => {
+          try {
+            const parts = String(tok || '').split('.');
+            if (parts.length < 2) return null;
+            const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+            const json = atob(base64);
+            return JSON.parse(json);
+          } catch { return null; }
+        };
+
+        const payload = getJwtPayload(token);
+        const sub = payload?.sub || '';
+        // Si sub es email y email no está, completar
+        if (sub && /@/.test(sub)) {
+          if (emailEl && !emailEl.value) emailEl.value = sub;
+          if (email2El && !email2El.value) email2El.value = sub;
+        }
+        // Si sub parece RUT (solo dígitos) y rut vacío, completar
+        if (sub && /^\d{7,9}$/.test(String(sub)) && rutEl && !rutEl.value) {
+          rutEl.value = formatRutFromDigits(String(sub));
+        }
+        // Nombre de respaldo
+        if (nombreEl && !nombreEl.value) {
+          const nombreAlt = (localStorage.getItem('nombreUsuario') || '').trim();
+          if (nombreAlt) nombreEl.value = nombreAlt;
+        }
+        // Email desde objetos alternos en storage
+        if (emailEl && !emailEl.value) {
+          try {
+            const u1 = JSON.parse(localStorage.getItem('usuario') || '{}');
+            const u2 = JSON.parse(localStorage.getItem('user') || '{}');
+            const em = u1?.email || u2?.email || '';
+            if (em) {
+              emailEl.value = em;
+              if (email2El && !email2El.value) email2El.value = em;
+            }
+          } catch {}
+        }
+      } catch {}
+
+      // Guardar email y teléfono al escribir para futuros prellenados
+      try {
+        const telEl = document.getElementById('dp-telefono');
+        const emailEl = document.getElementById('dp-email');
+        if (telEl) telEl.addEventListener('blur', () => {
+          try { localStorage.setItem('checkoutTelefono', telEl.value || ''); } catch {}
+        });
+        if (emailEl) emailEl.addEventListener('blur', () => {
+          try { localStorage.setItem('checkoutEmail', emailEl.value || ''); } catch {}
+        });
+      } catch {}
+
+      try {
+      // 2) Cargar despachos del usuario y prellenar dirección si hay token; si no, queda en retiro por defecto
+      //    Solo si hay ítems en el carrito (no forzar flujo de entrega sin compra)
+      let setTipo = false;
+      if (carritoTieneItems && token && user?.id_usuario) {
+        const dResp = await fetch(`${API}/despachos/usuario/${user.id_usuario}`, { headers });
+        if (dResp.ok) {
+          const dList = await safeJson(dResp);
+          const latest = findLatestDespacho(dList || []);
+          if (latest) {
+            try { window.__latestDespachoId = latest.id_despacho || latest.id; } catch {}
+            prefillAddress(latest);
+            try { localStorage.setItem('checkoutEntrega', 'despacho'); } catch {}
+            seleccionarTipoEntrega('despacho', false);
+            setTipo = true;
+          }
+        }
+      }
+      if (carritoTieneItems && !setTipo) {
+        try { localStorage.setItem('checkoutEntrega', 'retiro'); } catch {}
+        seleccionarTipoEntrega('retiro', false);
+      }
+      } catch (e) { console.warn('No se pudo cargar dirección de despacho:', e); }
+
+      // No auto-avanzar a pago; respetar avance manual tras completar pasos
+    };
+
+    // Prefill inmediato de datos personales aunque la sección de Pago esté oculta
+    const forcePrefillNow = async () => {
+      try {
+        const { isLoggedIn, token, user } = getAuth();
+        if (!isLoggedIn && !token && !user) return;
+        const API = computeApiUrl();
+        const headers = { 'Content-Type': 'application/json' };
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+        try {
+          if (token && user?.id_usuario) {
+            const uResp = await fetch(`${API}/usuarios/${user.id_usuario}`, { headers });
+            if (uResp.ok) {
+              const uData = await safeJson(uResp);
+              if (uData) prefillPersonalData(uData);
+              else prefillPersonalData(user || {});
+            } else {
+              prefillPersonalData(user || {});
+            }
+          } else {
+            prefillPersonalData(user || {});
+          }
+        } catch { prefillPersonalData(user || {}); }
+
+        // Bloquear edición solo si hay sesión reconocida
+        try {
+          const rutEl = document.getElementById('dp-rut');
+          const emailEl = document.getElementById('dp-email');
+          const email2El = document.getElementById('dp-email2');
+          const sessionOk = isLoggedIn || !!token || !!(user && user.id_usuario);
+          if (sessionOk) {
+            if (rutEl) rutEl.readOnly = true;
+            if (emailEl) emailEl.readOnly = true;
+            if (email2El) {
+              try { email2El.required = false; } catch {}
+              if (emailEl && emailEl.value && !email2El.value) email2El.value = emailEl.value;
+              const wrapper = email2El.parentElement;
+              if (wrapper) wrapper.classList.add('hidden');
+            }
+          } else {
+            if (email2El) {
+              try { email2El.required = true; } catch {}
+              const wrapper = email2El.parentElement;
+              if (wrapper) wrapper.classList.remove('hidden');
+            }
+          }
+        } catch {}
+      } catch (e) {
+        console.warn('No se pudo forzar prellenado inmediato:', e);
+      }
+    };
+
+    // Re-render ante cambios del carrito desde otros componentes/pestañas
+    window.addEventListener('storage', (e) => { if (e.key === 'carrito') { render(); actualizarEnvioYTotal(); } });
+    window.addEventListener('carrito:changed', () => { render(); actualizarEnvioYTotal(); });
+
+  </script>
+  
+
+  <script>
+    // Utilidades RUT para UI en carrito: puntos y guion con DV
+    function digitsOnly(value) { return String(value ?? '').replace(/\D/g, ''); }
+    function computeRutDV(digits) {
+      const body = digitsOnly(digits);
+      if (!body) return '';
+      let sum = 0, factor = 2;
+      for (let i = body.length - 1; i >= 0; i--) { sum += Number(body[i]) * factor; factor = factor === 7 ? 2 : factor + 1; }
+      const rest = 11 - (sum % 11);
+      if (rest === 11) return '0'; if (rest === 10) return 'K'; return String(rest);
+    }
+    function formatRutFromDigits(value) {
+      const body = digitsOnly(value);
+      if (!body) return '';
+      const dv = computeRutDV(body);
+      let result = '';
+      let tmp = body;
+      while (tmp.length > 3) { result = '.' + tmp.slice(-3) + result; tmp = tmp.slice(0, -3); }
+      return tmp + result + '-' + dv;
+    }
+  </script>
+</Layout>

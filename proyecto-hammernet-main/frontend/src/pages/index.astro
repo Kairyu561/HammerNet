@@ -1,0 +1,292 @@
+---
+import Layout from '../layouts/Layout.astro';
+import EnvLoader from '../components/EnvLoader.astro';
+import indexScriptUrl from '../scripts/pages/index.js?url';
+---
+
+<EnvLoader />
+<script type="module" src={indexScriptUrl}></script>
+
+<script>
+	// El script del módulo se encarga de cargar los productos automáticamente
+	document.addEventListener('DOMContentLoaded', () => {
+		// Obtener referencia al formulario de contacto
+		const contactForm = document.getElementById('contactForm');
+		
+		// Verificar si el formulario existe en la página
+		if (contactForm) {
+			// Agregar evento de envío al formulario
+			contactForm.addEventListener('submit', (event) => {
+				// Llamar a la función enviarMensaje importada desde index.js
+				if (typeof window.enviarMensaje === 'function') {
+					window.enviarMensaje(event);
+				}
+			});
+		}
+	});
+</script>
+
+<Layout title="Ferretería Patricio - Herramientas y Materiales de Construcción">
+
+	<!-- Sección de usuario autenticado -->
+	<div id="user-section" class="fixed top-4 right-4 z-50 hidden">
+		<div class="bg-white p-4 rounded-lg shadow-lg">
+			<p class="text-gray-800 mb-4">Bienvenido, <span id="user-name"></span></p>
+			<button id="logout-button"
+				class="w-full bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 transition-colors duration-300">
+				Cerrar Sesión
+			</button>
+		</div>
+	</div>
+
+	<!-- Sección de administrador -->
+	<div id="admin-section" class="fixed top-20 right-4 z-50 hidden">
+		<div class="bg-white p-4 rounded-lg shadow-lg">
+			<a href="/admin" class="block text-center bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition-colors duration-300">
+				Panel de Administración
+			</a>
+		</div>
+	</div>
+
+
+
+	<div class="container mx-auto px-4 py-8">
+		<!-- Hero Section -->
+		<div class="relative rounded-xl p-12 mb-16 text-white text-center shadow-xl transform hover:scale-[1.02] transition-all duration-300 overflow-hidden" data-aos="fade-up" data-aos-duration="1000">
+			<!-- Background Image -->
+			<div class="absolute inset-0">
+				<img src="/images/logos/herramientas_hombre.webp" alt="Herramientas de construcción" class="w-full h-full object-cover">
+				<div class="absolute inset-0 bg-black bg-opacity-40"></div>
+			</div>
+			<!-- Content overlay -->
+			<div class="relative z-10">
+			<div class="max-w-3xl mx-auto">
+				<div class="rounded-full overflow-hidden w-56 h-56 mx-auto mb-8 shadow-2xl transform hover:rotate-3 transition-transform duration-500" data-aos="zoom-in" data-aos-delay="200">
+					<img src="/images/logos/logo.webp" alt="Herramientas de construcción" class="w-full h-full object-cover transform hover:scale-110 transition-transform duration-500">
+				</div>
+				<h1 class="text-4xl font-bold mb-6 leading-tight">Descubre las mejores herramientas y materiales para la construcción.</h1>
+				<p class="text-xl text-blue-100 mb-8">Tu socio confiable en proyectos de construcción</p>
+				<a href="/productos" class="inline-block bg-white text-blue-600 px-8 py-4 rounded-full font-semibold hover:bg-blue-50 transform hover:scale-105 transition-all duration-300 shadow-md">Ver Productos</a>
+			</div>
+			</div>
+		</div>
+
+		<!-- Features Section -->
+		<div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+			<div class="bg-white p-8 rounded-xl shadow-lg text-center transform hover:scale-105 transition-all duration-300" data-aos="fade-up" data-aos-delay="0">
+				<div class="text-5xl mb-6 transform hover:rotate-12 transition-transform duration-300">📦</div>
+				<h3 class="text-2xl font-semibold mb-4 text-gray-800">Variedad</h3>
+				<p class="text-gray-600 leading-relaxed">Encuentra variedad, calidad y las mejores marcas para tus proyectos</p>
+			</div>
+			<div class="bg-white p-8 rounded-xl shadow-lg text-center transform hover:scale-105 transition-all duration-300" data-aos="fade-up" data-aos-delay="100">
+				<div class="text-5xl mb-6 transform hover:rotate-12 transition-transform duration-300">💰</div>
+				<h3 class="text-2xl font-semibold mb-4 text-gray-800">Precios bajos</h3>
+				<p class="text-gray-600 leading-relaxed">Los mejores precios del mercado garantizados para tu satisfacción</p>
+			</div>
+			<div class="bg-white p-8 rounded-xl shadow-lg text-center transform hover:scale-105 transition-all duration-300" data-aos="fade-up" data-aos-delay="200">
+				<div class="text-5xl mb-6 transform hover:rotate-12 transition-transform duration-300">⏰</div>
+				<h3 class="text-2xl font-semibold mb-4 text-gray-800">Soporte 24/7</h3>
+				<p class="text-gray-600 leading-relaxed">Expertos capacitados para atenderte todos los días con las mejores soluciones</p>
+			</div>
+		</div>
+
+		<!-- Carrusel de productos (máximo 15) -->
+		<section class="mb-16" data-aos="fade-up" data-aos-duration="1000">
+			<h2 class="text-3xl font-bold text-center mb-12 text-gray-800">Algunos de nuestros productos</h2>
+			<div class="relative overflow-hidden">
+				<button id="inicio-prev" aria-label="Anterior" class="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-black text-white shadow rounded-full w-10 h-10 flex items-center justify-center hover:bg-black/90">
+					<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+				</button>
+				<button id="inicio-next" aria-label="Siguiente" class="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-black text-white shadow rounded-full w-10 h-10 flex items-center justify-center hover:bg-black/90">
+					<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M8.59 16.59L10 18l6-6-6-6-1.41 1.41L13.17 12z"/></svg>
+				</button>
+
+				<div id="inicio-carousel" class="flex gap-6 overflow-x-auto pb-2 snap-x snap-mandatory cursor-grab select-none" style="scrollbar-width:none; --cols:4; --gap:1.5rem; padding-left:2.5rem; padding-right:2.5rem; scroll-padding-left:2.5rem; scroll-padding-right:2.5rem;">
+					<div class="flex-none w-full text-center py-8 snap-start">
+						<div class="animate-pulse flex justify-center">
+							<div class="h-4 w-28 bg-gray-200 rounded"></div>
+						</div>
+						<p class="text-gray-400 mt-4">Cargando carrusel...</p>
+					</div>
+				</div>
+			</div>
+			<!-- Botón único centrado para ver más productos debajo del carrusel -->
+			<div class="mt-8 flex justify-center">
+				<a href="/productos" class="px-4 py-2 bg-black text-white rounded font-bold text-xl hover:bg-gray-900 transition-colors duration-200" data-aos="zoom-in">Ver más</a>
+			</div>
+		</section>
+
+		<script>
+			document.addEventListener('DOMContentLoaded', () => {
+				const cont = document.getElementById('inicio-carousel');
+				const prev = document.getElementById('inicio-prev');
+				const next = document.getElementById('inicio-next');
+				if (!cont) return;
+
+				const formatearPrecio = (p) => String(Number(p || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+
+				async function fetchProductos() {
+					try {
+						await fetch('/api/health').catch(() => {});
+						const res = await fetch('/api/productos/catalogo?skip=0&limit=15');
+						const data = res.ok ? await res.json() : [];
+						render(data);
+						alignToStart();
+					} catch (e) {
+						cont.innerHTML = '<div class="flex-none w-full text-center py-8 snap-start"><p class="text-gray-500">No se pudo cargar el carrusel</p></div>';
+					}
+				}
+
+				// Helpers para normalizar URLs de imagen
+				function getApiHost() {
+					try {
+						const env = window.__ENV__ || {};
+						const api = env.PUBLIC_API_URL || env.PUBLIC_API_URL_PRODUCTION || '/api';
+						return api.replace(/\/api$/, '');
+					} catch { return ''; }
+				}
+                function normalizeImageUrl(u) {
+                    if (!u) return null;
+                    const s = String(u);
+                    if (/^(https?:\/\/|data:)/i.test(s)) return s;
+                    const host = getApiHost();
+                    const base = host || (typeof location !== 'undefined' ? location.origin : '');
+                    if (s.startsWith('/')) return base ? (base + s) : s;
+                    return base ? (base + '/' + s) : s;
+                }
+
+                function render(items) {
+                    cont.innerHTML = items.map(p => {
+                        const id = p.id_producto ?? p.id;
+                        const imagen = normalizeImageUrl(p.imagen_url) || '/images/logos/herramientas.webp';
+                        const precioBase = Number(p.precio_venta ?? p.precio ?? 0);
+                        const precio = Number(p.precio_final ?? precioBase);
+                        const tieneOferta = Boolean(p.oferta_activa) || (precioBase > 0 && precio < precioBase);
+                        const percCalc = tieneOferta ? Math.round((1 - precio / precioBase) * 100) : 0;
+                        const perc = Number(p.tipo_oferta === 'porcentaje' ? (p.valor_oferta ?? percCalc) : percCalc) || 0;
+                        const nombre = p.nombre || 'Producto';
+                        const desc = (p.descripcion || '').trim();
+                        const short = desc.length > 100 ? desc.slice(0, 100) + '...' : desc;
+                        return `
+                            <div class="flex-none bg-white rounded-xl border border-gray-100 shadow hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col overflow-hidden snap-start inicio-card" style="flex:0 0 calc((100% - (var(--cols) - 1) * var(--gap)) / var(--cols));" onclick="if(!window.__homeDragGuard){ window.location.href='/productos/${id}'; }">
+                                <div class="relative w-full aspect-square bg-white">
+                                    ${tieneOferta ? '<span class=\'absolute top-2 left-2 z-10 text-[10px] px-2 py-1 bg-red-100 text-red-700 rounded\'>Oferta</span>' : ''}
+                                    <div class="absolute inset-2 border border-gray-200 rounded-lg overflow-hidden">
+                                        <img src="${imagen}" alt="${nombre}" class="w-full h-full object-cover pointer-events-none select-none" loading="lazy" draggable="false" ondragstart="return false" style="-webkit-user-drag: none; user-drag: none;" />
+                                    </div>
+                                </div>
+                                <div class="p-4 flex-1 flex flex-col">
+                                    <h3 class="text-sm font-semibold text-gray-900 mb-1 text-center">${nombre}</h3>
+                                    ${short ? `<p class="text-gray-600 text-xs mb-3 line-clamp-2 text-center">${short}</p>` : ''}
+                                    <div class="mt-auto flex items-center justify-center gap-2">
+                                        ${perc > 0 ? '<span class="text-xs font-bold text-green-700 bg-green-100 px-2 py-1 rounded">-' + perc + '%</span>' : ''}
+                                        <span class="px-4 py-2 bg-black text-white rounded text-lg font-bold">$${formatearPrecio(precio)}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                }
+
+				const getGapPx = () => {
+					const g = window.getComputedStyle(cont).gap || '24px';
+					const first = (g.split(' ')[0] || g).replace('px', '');
+					const val = parseFloat(first);
+					return isNaN(val) ? 24 : val;
+				};
+				const getInsetPx = () => {
+					const s = window.getComputedStyle(cont);
+					const pl = parseFloat((s.paddingLeft || '0').replace('px', '')) || 0;
+					const pr = parseFloat((s.paddingRight || '0').replace('px', '')) || 0;
+					return { left: pl, right: pr };
+				};
+				const getCardFullWidth = () => {
+					const card = cont.querySelector('.inicio-card');
+					if (!card) return 280;
+					const rect = card.getBoundingClientRect();
+					return Math.round(rect.width + getGapPx());
+				};
+				const getStep = () => getCardFullWidth();
+				const moveInstant = (distance) => { cont.scrollLeft = cont.scrollLeft + distance; };
+				const snapToNearest = () => {
+					const step = getCardFullWidth();
+					const { left: insetLeft } = getInsetPx();
+					const left = cont.scrollLeft;
+					const relative = left - insetLeft;
+					let target = Math.round(relative / step) * step + insetLeft;
+					const maxScroll = cont.scrollWidth - cont.clientWidth;
+					target = Math.max(0, Math.min(target, maxScroll));
+					cont.scrollLeft = target;
+				};
+				const alignToStart = () => {
+					const { left: insetLeft } = getInsetPx();
+					cont.scrollLeft = insetLeft;
+					snapToNearest();
+				};
+
+				prev?.addEventListener('click', () => { moveInstant(-getStep() * 4); snapToNearest(); });
+				next?.addEventListener('click', () => { moveInstant(getStep() * 4); snapToNearest(); });
+
+				// Drag para scroll
+				let isDown = false, startX = 0, startScroll = 0, moved = false;
+				window.__homeDragGuard = false;
+				const setGuard = () => { window.__homeDragGuard = true; setTimeout(() => { window.__homeDragGuard = false; }, 150); };
+				cont.addEventListener('mousedown', (e) => { isDown = true; moved = false; cont.classList.add('cursor-grabbing'); startX = e.pageX - cont.offsetLeft; startScroll = cont.scrollLeft; });
+				cont.addEventListener('mousemove', (e) => { if (!isDown) return; e.preventDefault(); const x = e.pageX - cont.offsetLeft; const walk = x - startX; cont.scrollLeft = startScroll - walk; if (Math.abs(walk) > 5) moved = true; });
+				const endDrag = () => { if (isDown && moved) { setGuard(); snapToNearest(); } isDown = false; moved = false; cont.classList.remove('cursor-grabbing'); };
+				cont.addEventListener('mouseleave', endDrag);
+				cont.addEventListener('mouseup', endDrag);
+				cont.addEventListener('touchstart', (e) => { const t = e.touches[0]; startX = t.pageX - cont.offsetLeft; startScroll = cont.scrollLeft; moved = false; });
+				cont.addEventListener('touchmove', (e) => { const t = e.touches[0]; const x = t.pageX - cont.offsetLeft; const walk = x - startX; cont.scrollLeft = startScroll - walk; if (Math.abs(walk) > 3) moved = true; });
+				cont.addEventListener('touchend', () => { if (moved) { setGuard(); snapToNearest(); } moved = false; });
+
+				// Alinear al inicio en carga y al redimensionar
+				const debounce = (fn, t = 200) => { let id; return (...args) => { clearTimeout(id); id = setTimeout(() => fn(...args), t); }; };
+				window.addEventListener('resize', debounce(alignToStart, 200));
+
+				fetchProductos();
+			});
+		</script>
+		<style>
+			#inicio-carousel::-webkit-scrollbar { display: none; }
+			#inicio-carousel { -ms-overflow-style: none; scrollbar-width: none; }
+		</style>
+
+		<!-- Products Section eliminado según solicitud -->
+
+		<!-- Why Choose Us Section -->
+		<section class="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-12 shadow-lg" data-aos="fade-up" data-aos-duration="1000">
+			<h2 class="text-3xl font-bold text-center mb-12 text-gray-800">Por qué elegir nuestros productos</h2>
+			<div class="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+				<div class="space-y-8">
+					<div class="flex items-start gap-6 group transform hover:translate-x-2 transition-transform duration-300">
+						<span class="text-3xl group-hover:rotate-12 transition-transform duration-300">🔧</span>
+						<div>
+							<h4 class="text-xl font-semibold mb-2 text-gray-800">Durabilidad Garantizada</h4>
+							<p class="text-gray-600 leading-relaxed">Herramientas y materiales resistentes, pensados para acompañarte por años</p>
+						</div>
+					</div>
+					<div class="flex items-start gap-6 group transform hover:translate-x-2 transition-transform duration-300">
+						<span class="text-3xl group-hover:rotate-12 transition-transform duration-300">🛠️</span>
+						<div>
+							<h4 class="text-xl font-semibold mb-2 text-gray-800">Todo en Un Lugar</h4>
+							<p class="text-gray-600 leading-relaxed">Todo lo que necesitas para reparar, construir o renovar, en un solo lugar</p>
+						</div>
+					</div>
+					<div class="flex items-start gap-6 group transform hover:translate-x-2 transition-transform duration-300">
+						<span class="text-3xl group-hover:rotate-12 transition-transform duration-300">⚡</span>
+						<div>
+							<h4 class="text-xl font-semibold mb-2 text-gray-800">Eficiencia y Ahorro</h4>
+							<p class="text-gray-600 leading-relaxed">Ahorra tiempo y dinero con productos confiables y de alta calidad</p>
+						</div>
+					</div>
+				</div>
+				<div class="rounded-xl overflow-hidden shadow-xl transform hover:scale-105 transition-transform duration-300" data-aos="fade-left" data-aos-delay="200">
+					<img src="/images/logos/herramientas.webp" alt="Colección de herramientas" class="w-full">
+				</div>
+			</div>
+		</section>
+
+
+
+		

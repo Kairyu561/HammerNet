@@ -1,0 +1,611 @@
+---
+import Layout from '../layouts/Layout.astro';
+// Evitar cargar script externo por ahora; inyectar lógica mínima inline
+---
+
+<script type="module">
+  import { trackEvent } from '/src/scripts/utils/analytics.js';
+  // Helpers para normalizar URLs de imágenes (soporta relativas del backend)
+  function getApiHost() {
+    try {
+      const env = window.__ENV__ || {};
+      const api = env.PUBLIC_API_URL || env.PUBLIC_API_URL_PRODUCTION || '/api';
+      return api.replace(/\/api$/, '');
+    } catch {
+      return '';
+    }
+  }
+
+  function normalizeImageUrl(u) {
+    if (!u) return null;
+    const s = String(u);
+    if (/^(https?:\/\/|data:)/i.test(s)) return s;
+    const host = getApiHost();
+    const base = host || (typeof location !== 'undefined' ? location.origin : '');
+    if (s.startsWith('/')) return base ? (base + s) : s;
+    return base ? (base + '/' + s) : s;
+  }
+  // Lógica mínima para catálogo sin botón "Ver más"
+  const state = {
+    todosProductos: [],
+    totalProductos: 0,
+    paginacion: { paginaActual: 1, productosPorPagina: 12, totalPaginas: 1 },
+    filtros: { busqueda: '', precioMin: 0, precioMax: 100000, usarPrecio: false, categoriaId: null, subcategoriaId: null },
+    orden: { sortBy: 'default' }
+  };
+
+  const contenedorProductos = document.getElementById('productos-grid');
+  const infoPaginacionContainer = document.getElementById('info-paginacion');
+  const paginacionContainer = document.getElementById('paginacion');
+  const inputBusqueda = document.getElementById('busqueda');
+  const rangoPrecio = document.getElementById('precio-rango');
+  const precioValor = document.getElementById('precio-valor');
+  const btnTogglePrecio = document.getElementById('toggle-precio');
+  const precioContainer = document.getElementById('precio-container');
+  const iconPrecio = document.getElementById('icon-precio');
+  const btnToggleOrden = document.getElementById('toggle-orden');
+  const iconOrden = document.getElementById('icon-orden');
+  const ordenContainer = document.getElementById('orden-container');
+  const btnClearFilters = document.getElementById('btn-clear-filters');
+  const btnClearFiltersBottom = document.getElementById('btn-clear-filters-bottom');
+  const btnToggleCategorias = document.getElementById('toggle-categorias');
+  const iconCategorias = document.getElementById('icon-categorias');
+  const categoriasContainer = document.getElementById('categorias-container');
+  const btnToggleSubcats = document.getElementById('toggle-subcats');
+  const iconSubcats = document.getElementById('icon-subcats');
+  const subcatsContainer = document.getElementById('subcats-container');
+  async function cargarCategorias() {
+    try {
+      const res = await fetch('/api/categorias/');
+      const cats = res.ok ? await res.json() : [];
+      renderCategorias(Array.isArray(cats) ? cats : []);
+    } catch {}
+  }
+  async function cargarSubcategorias(categoriaId) {
+    try {
+      const res = await fetch(`/api/subcategorias/?categoria_id=${encodeURIComponent(categoriaId)}`);
+      const subs = res.ok ? await res.json() : [];
+      renderSubcategorias(Array.isArray(subs) ? subs : []);
+    } catch {}
+  }
+  function renderCategorias(cats) {
+    if (!categoriasContainer) return;
+    categoriasContainer.innerHTML = cats.map(c => `
+      <button type="button" data-cat-id="${c.id_categoria}" class="w-full px-3 py-2 rounded border text-sm hover:bg-gray-100 ${String(state.filtros.categoriaId)===String(c.id_categoria)?'bg-black text-white':''}">${c.nombre}</button>
+    `).join('');
+    categoriasContainer.querySelectorAll('[data-cat-id]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const id = Number(e.currentTarget.getAttribute('data-cat-id'));
+        state.filtros.categoriaId = (state.filtros.categoriaId === id) ? null : id;
+        state.filtros.subcategoriaId = null;
+        try {
+          categoriasContainer.querySelectorAll('[data-cat-id]').forEach(el => el.classList.remove('bg-black','text-white'));
+          if (state.filtros.categoriaId === id) e.currentTarget.classList.add('bg-black','text-white');
+        } catch {}
+        subcatsContainer && (subcatsContainer.innerHTML = '');
+        if (state.filtros.categoriaId) cargarSubcategorias(state.filtros.categoriaId);
+        state.paginacion.paginaActual = 1;
+        aplicarFiltros();
+      });
+    });
+  }
+  function renderSubcategorias(subs) {
+    if (!subcatsContainer) return;
+    if (!subs.length) { subcatsContainer.innerHTML = ''; return; }
+    subcatsContainer.innerHTML = subs.map(s => `
+      <button type="button" data-subcat-id="${s.id_subcategoria}" class="w-full px-3 py-2 rounded border text-sm hover:bg-gray-100 ${String(state.filtros.subcategoriaId)===String(s.id_subcategoria)?'bg-black text-white':''}">${s.nombre}</button>
+    `).join('');
+    subcatsContainer.querySelectorAll('[data-subcat-id]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const id = Number(e.currentTarget.getAttribute('data-subcat-id'));
+        state.filtros.subcategoriaId = (state.filtros.subcategoriaId === id) ? null : id;
+        try {
+          subcatsContainer.querySelectorAll('[data-subcat-id]').forEach(el => el.classList.remove('bg-black','text-white'));
+          if (state.filtros.subcategoriaId === id) e.currentTarget.classList.add('bg-black','text-white');
+        } catch {}
+        state.paginacion.paginaActual = 1;
+        aplicarFiltros();
+      });
+    });
+  }
+
+  try {
+    const url = new URL(window.location.href);
+    const q = url.searchParams.get('q');
+    const max = url.searchParams.get('max');
+    const page = url.searchParams.get('page');
+    const sort = url.searchParams.get('sort');
+    const cat = url.searchParams.get('cat');
+    const subcat = url.searchParams.get('subcat');
+    if (q) {
+      state.filtros.busqueda = q.toLowerCase();
+      if (inputBusqueda) inputBusqueda.value = q;
+    }
+    if (max) {
+      const val = Number(max);
+      if (!Number.isNaN(val)) {
+        state.filtros.usarPrecio = true;
+        if (precioContainer) precioContainer.classList.remove('hidden');
+        if (iconPrecio) iconPrecio.classList.add('rotate-180');
+        if (rangoPrecio) rangoPrecio.value = String(val);
+        state.filtros.precioMax = val;
+        if (precioValor) precioValor.textContent = `$${val.toLocaleString('es-CL')}+`;
+      }
+    }
+    if (page) {
+      const p = Number(page);
+      if (!Number.isNaN(p) && p >= 1) state.paginacion.paginaActual = p;
+    }
+    if (sort) {
+      state.orden.sortBy = sort;
+      try {
+        const active = document.querySelector(`[data-sort-option="${sort}"]`);
+        if (active) {
+          document.querySelectorAll('[data-sort-option]').forEach(el => el.classList.remove('bg-black','text-white'));
+          active.classList.add('bg-black','text-white');
+        }
+      } catch {}
+    }
+    if (cat) {
+      const cid = Number(cat);
+      if (!Number.isNaN(cid)) state.filtros.categoriaId = cid;
+    }
+    if (subcat) {
+      const sid = Number(subcat);
+      if (!Number.isNaN(sid)) state.filtros.subcategoriaId = sid;
+    }
+  } catch {}
+
+  function formatearPrecio(precio) {
+    return String(precio ?? 0).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  }
+
+  function mostrarCargando() {
+    if (!contenedorProductos) return;
+    contenedorProductos.innerHTML = `
+      <div class="col-span-full flex justify-center items-center py-12">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <span class="ml-3 text-gray-600">Cargando productos...</span>
+      </div>
+    `;
+  }
+
+  function mostrarProductos(productos) {
+    if (!contenedorProductos) return;
+    if (!Array.isArray(productos) || productos.length === 0) {
+      contenedorProductos.innerHTML = `<div class="col-span-full text-center py-12"><h3 class="text-lg font-medium text-gray-900 mb-2">No se encontraron productos</h3></div>`;
+      return;
+    }
+    contenedorProductos.innerHTML = productos.map(p => {
+      const img = normalizeImageUrl(p.imagen_url);
+      const base = Number(p.precio_venta ?? p.precio ?? 0);
+      const final = Number(p.precio_final ?? base);
+      const percCalc = base > 0 && final < base ? Math.round((1 - final / base) * 100) : 0;
+      const perc = Number(p.tipo_oferta === 'porcentaje' ? (p.valor_oferta ?? percCalc) : percCalc) || 0;
+      return `
+      <div class="bg-white rounded-xl border border-gray-100 shadow hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col overflow-hidden" onclick="verProducto(${p.id_producto})">
+        <div class="relative w-full aspect-square bg-white">
+          ${p.oferta_activa ? '<span class=\'absolute top-2 left-2 z-10 text-[10px] px-2 py-1 bg-red-100 text-red-700 rounded\'>Oferta</span>' : ''}
+          <div class="absolute inset-2 border border-gray-200 rounded-lg overflow-hidden">
+            <img src="${img || '/images/placeholder-product.jpg'}" alt="${p.nombre}" class="w-full h-full object-cover" loading="lazy" decoding="async" sizes="(min-width:1024px) 25vw, 50vw" />
+          </div>
+        </div>
+        <div class="p-4 flex-1 flex flex-col">
+          <h3 class="text-sm font-semibold text-gray-900 mb-1 text-center">${p.nombre}</h3>
+          <p class="text-gray-600 text-xs mb-3 line-clamp-2 text-center">${p.descripcion || 'Sin descripción'}</p>
+          <div class="mt-auto flex items-center justify-center gap-2">
+            ${perc > 0 ? '<span class="text-xs font-bold text-green-700 bg-green-100 px-2 py-1 rounded">-' + perc + '%</span>' : ''}
+            <span class="px-4 py-2 bg-black text-white rounded text-lg font-bold">$${formatearPrecio(p.precio_final ?? p.precio_venta ?? p.precio ?? 0)}</span>
+          </div>
+        </div>
+      </div>
+    `}).join('');
+  }
+
+  function actualizarInfoPaginacion() {
+    if (!infoPaginacionContainer) return;
+    if (state.totalProductos === 0) {
+      infoPaginacionContainer.innerHTML = '<p class="text-gray-500">No se encontraron productos</p>';
+      return;
+    }
+    const inicio = (state.paginacion.paginaActual - 1) * state.paginacion.productosPorPagina + 1;
+    const fin = Math.min(state.paginacion.paginaActual * state.paginacion.productosPorPagina, state.totalProductos);
+    infoPaginacionContainer.innerHTML = `<p class="text-sm text-gray-500">Mostrando ${inicio} a ${fin} de ${state.totalProductos} resultados</p>`;
+  }
+
+  function actualizarPaginacion() {
+    if (!paginacionContainer) return;
+    if (state.paginacion.totalPaginas <= 1) { paginacionContainer.innerHTML = ''; return; }
+    let html = '';
+    if (state.paginacion.paginaActual > 1) {
+      html += `
+        <button
+          onclick="cambiarPagina(${state.paginacion.paginaActual - 1})"
+          aria-label="Página anterior"
+          class="h-8 w-8 flex items-center justify-center rounded-full bg-black text-white hover:bg-gray-900 transition-colors duration-200 shadow"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
+          </svg>
+        </button>`;
+    }
+    html += '<div class="flex gap-2">';
+    for (let i = 1; i <= state.paginacion.totalPaginas; i++) {
+      if (i === state.paginacion.paginaActual) {
+        html += `<button class="px-3 py-1 bg-black text-white rounded-full text-sm">${i}</button>`;
+      } else {
+        html += `<button onclick="cambiarPagina(${i})" class="px-3 py-1 text-gray-700 hover:bg-gray-100 rounded-full text-sm">${i}</button>`;
+      }
+    }
+    html += '</div>';
+    if (state.paginacion.paginaActual < state.paginacion.totalPaginas) {
+      html += `
+        <button
+          onclick="cambiarPagina(${state.paginacion.paginaActual + 1})"
+          aria-label="Página siguiente"
+          class="h-8 w-8 flex items-center justify-center rounded-full bg-black text-white hover:bg-gray-900 transition-colors duration-200 shadow"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+          </svg>
+        </button>`;
+    }
+    paginacionContainer.innerHTML = html;
+  }
+
+  function aplicarFiltros() {
+    let arr = Array.isArray(state.todosProductos) ? [...state.todosProductos] : [];
+    arr = arr.filter(p => {
+      const term = state.filtros.busqueda?.toLowerCase() || '';
+      if (term) {
+        const n = (p.nombre || '').toLowerCase();
+        const d = (p.descripcion || '').toLowerCase();
+        if (!n.includes(term) && !d.includes(term)) return false;
+      }
+      if (state.filtros.categoriaId) {
+        if (String(p.id_categoria) !== String(state.filtros.categoriaId)) return false;
+      }
+      if (state.filtros.subcategoriaId) {
+        if (String(p.id_subcategoria) !== String(state.filtros.subcategoriaId)) return false;
+      }
+      if (state.filtros.usarPrecio) {
+        const precio = Number(p.precio_final ?? p.precio_venta ?? p.precio ?? 0);
+        if (!(precio >= state.filtros.precioMin && precio <= state.filtros.precioMax)) return false;
+      }
+      return true;
+    });
+    // Ordenamiento
+    const byPrice = (p) => Number(p.precio_final ?? p.precio_venta ?? p.precio ?? 0);
+    const bySold = (p) => Number(p.ventas_count ?? p.total_vendido ?? p.unidades_vendidas ?? 0);
+    const byRated = (p) => Number(p.rating ?? p.valoracion ?? p.estrellas ?? 0);
+    const byDate = (p) => {
+      const d = p.fecha_creacion || p.created_at || p.fecha_creado;
+      try { return new Date(d).getTime(); } catch { return 0; }
+    };
+    switch (state.orden.sortBy) {
+      case 'price_asc':
+        arr.sort((a, b) => byPrice(a) - byPrice(b));
+        break;
+      case 'price_desc':
+        arr.sort((a, b) => byPrice(b) - byPrice(a));
+        break;
+      case 'sold_desc':
+        arr.sort((a, b) => bySold(b) - bySold(a));
+        break;
+      case 'rated_desc':
+        arr.sort((a, b) => byRated(b) - byRated(a));
+        break;
+      case 'newest':
+        arr.sort((a, b) => byDate(b) - byDate(a));
+        break;
+      default:
+        break;
+    }
+    state.totalProductos = arr.length;
+    state.paginacion.totalPaginas = Math.ceil(state.totalProductos / state.paginacion.productosPorPagina);
+    const inicio = (state.paginacion.paginaActual - 1) * state.paginacion.productosPorPagina;
+    const fin = inicio + state.paginacion.productosPorPagina;
+    const pagina = arr.slice(inicio, fin);
+    mostrarProductos(pagina);
+    actualizarInfoPaginacion();
+    actualizarPaginacion();
+    try {
+      const params = new URLSearchParams();
+      const term = state.filtros.busqueda?.trim();
+      if (term) params.set('q', term);
+      if (state.filtros.usarPrecio) params.set('max', String(state.filtros.precioMax));
+      params.set('page', String(state.paginacion.paginaActual));
+      if (state.orden.sortBy && state.orden.sortBy !== 'default') params.set('sort', state.orden.sortBy);
+      if (state.filtros.categoriaId) params.set('cat', String(state.filtros.categoriaId));
+      if (state.filtros.subcategoriaId) params.set('subcat', String(state.filtros.subcategoriaId));
+      const url = new URL(window.location.href);
+      url.search = params.toString();
+      window.history.replaceState({}, '', url.toString());
+    } catch {}
+  }
+
+  window.cambiarPagina = function(p) {
+    if (p >= 1 && p <= state.paginacion.totalPaginas) {
+      state.paginacion.paginaActual = p;
+      aplicarFiltros();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  window.verProducto = function(id) {
+    try { trackEvent('catalog_view_product', { id }); } catch {}
+    window.location.href = `/productos/${id}`;
+  };
+
+  async function cargarProductos() {
+    mostrarCargando();
+    try {
+      await fetch('/api/health').catch(() => {});
+      const res = await fetch('/api/productos/catalogo?skip=0&limit=1000');
+      const productos = res.ok ? await res.json() : [];
+      state.todosProductos = productos;
+      state.paginacion.paginaActual = 1;
+      aplicarFiltros();
+    } catch (e) {
+      if (contenedorProductos) {
+        contenedorProductos.innerHTML = '<div class="col-span-full text-center py-12 text-red-600">Error al cargar el catálogo</div>';
+      }
+      console.error(e);
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    cargarCategorias();
+    if (state.filtros.categoriaId) cargarSubcategorias(state.filtros.categoriaId);
+    cargarProductos();
+  });
+
+  // Eventos UI: búsqueda y precio
+  if (inputBusqueda) {
+    inputBusqueda.addEventListener('input', (e) => {
+      state.filtros.busqueda = (e.target.value || '').toLowerCase();
+      state.paginacion.paginaActual = 1;
+      aplicarFiltros();
+    });
+  }
+
+  if (rangoPrecio) {
+    const initial = Number(rangoPrecio.value || 100000);
+    state.filtros.precioMax = initial;
+    if (precioValor) precioValor.textContent = `$${initial.toLocaleString('es-CL')}+`;
+    rangoPrecio.addEventListener('input', (e) => {
+      const val = Number(e.target.value || 0);
+      state.filtros.precioMax = val;
+      state.paginacion.paginaActual = 1;
+      if (precioValor) precioValor.textContent = `$${val.toLocaleString('es-CL')}+`;
+      aplicarFiltros();
+    });
+  }
+
+  // Toggle de filtro por precio (como categorías)
+  if (btnTogglePrecio && precioContainer) {
+    btnTogglePrecio.addEventListener('click', () => {
+      const activo = !precioContainer.classList.contains('hidden');
+      if (activo) {
+        precioContainer.classList.add('hidden');
+        state.filtros.usarPrecio = false;
+      } else {
+        precioContainer.classList.remove('hidden');
+        state.filtros.usarPrecio = true;
+      }
+      if (iconPrecio) iconPrecio.classList.toggle('rotate-180');
+      state.paginacion.paginaActual = 1;
+      aplicarFiltros();
+    });
+  }
+
+  // Toggle de orden
+  if (btnToggleOrden && ordenContainer) {
+    btnToggleOrden.addEventListener('click', () => {
+      const activo = !ordenContainer.classList.contains('hidden');
+      if (activo) {
+        ordenContainer.classList.add('hidden');
+      } else {
+        ordenContainer.classList.remove('hidden');
+      }
+      if (iconOrden) iconOrden.classList.toggle('rotate-180');
+    });
+    // Opciones de orden
+    ordenContainer.querySelectorAll('[data-sort-option]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const val = e.currentTarget.getAttribute('data-sort-option') || 'default';
+        state.orden.sortBy = val;
+        // marcar activa
+        try {
+          ordenContainer.querySelectorAll('[data-sort-option]').forEach(el => el.classList.remove('bg-black','text-white'));
+          e.currentTarget.classList.add('bg-black','text-white');
+        } catch {}
+        state.paginacion.paginaActual = 1;
+        aplicarFiltros();
+      });
+    });
+  }
+
+  // Toggle de categorías
+  if (btnToggleCategorias && categoriasContainer) {
+    btnToggleCategorias.addEventListener('click', () => {
+      categoriasContainer.classList.toggle('hidden');
+      if (iconCategorias) iconCategorias.classList.toggle('rotate-180');
+    });
+  }
+  // Toggle de subcategorías
+  if (btnToggleSubcats && subcatsContainer) {
+    btnToggleSubcats.addEventListener('click', () => {
+      subcatsContainer.classList.toggle('hidden');
+      if (iconSubcats) iconSubcats.classList.toggle('rotate-180');
+    });
+  }
+</script>
+
+<Layout title="Productos - Ferretería Patricio">
+    <div class="container mx-auto px-4 py-8">
+        <div class="flex flex-row gap-8">
+            <!-- Filtros -->
+            <div class="w-64 flex-shrink-0 bg-white border border-gray-200 p-6 rounded-xl shadow h-fit transition-all duration-300 font-sans text-sm sticky top-24" data-aos="fade-right" data-aos-duration="1000">
+                <!-- Buscador arriba de los filtros -->
+                <div class="mb-6">
+                    <label for="busqueda" class="block text-sm font-medium text-gray-700 mb-2">Buscar Producto</label>
+                    <div class="relative">
+                        <input
+                            id="busqueda"
+                            type="text"
+                            placeholder="Buscar Producto"
+                            class="w-full p-3 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+                        />
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </div>
+                </div>
+
+                <div class="space-y-8">
+                    <!-- Ordenar por -->
+                    <div class="border-b pb-6">
+                        <button id="toggle-orden" class="flex items-center justify-between w-full font-semibold mb-4 text-gray-700 hover:text-blue-600">
+                            <span>Ordenar por</span>
+                            <svg id="icon-orden" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4 transform transition-transform duration-200">
+                                <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                        <div id="orden-container" class="space-y-3 hidden">
+                            <div class="grid grid-cols-1 gap-2">
+                                <button type="button" data-sort-option="price_asc" class="w-full px-3 py-2 rounded border text-sm hover:bg-gray-100">Precio: menor → mayor</button>
+                                <button type="button" data-sort-option="price_desc" class="w-full px-3 py-2 rounded border text-sm hover:bg-gray-100">Precio: mayor → menor</button>
+                                <button type="button" data-sort-option="sold_desc" class="w-full px-3 py-2 rounded border text-sm hover:bg-gray-100">Más vendidos</button>
+                                <button type="button" data-sort-option="rated_desc" class="w-full px-3 py-2 rounded border text-sm hover:bg-gray-100">Mejor valorados</button>
+                                <button type="button" data-sort-option="newest" class="w-full px-3 py-2 rounded border text-sm hover:bg-gray-100">Más nuevos</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Categorías -->
+                    <div class="border-b pb-6">
+                        <button id="toggle-categorias" class="flex items-center justify-between w-full font-semibold mb-4 text-gray-700 hover:text-blue-600">
+                            <span>Categorías</span>
+                            <svg id="icon-categorias" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4 transform transition-transform duration-200">
+                                <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                        <div id="categorias-container" class="space-y-2 hidden"></div>
+                    </div>
+
+                    <!-- Subcategorías -->
+                    <div class="border-b pb-6">
+                        <button id="toggle-subcats" class="flex items-center justify-between w-full font-semibold mb-4 text-gray-700 hover:text-blue-600">
+                            <span>Subcategorías</span>
+                            <svg id="icon-subcats" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4 transform transition-transform duration-200">
+                                <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                        <div id="subcats-container" class="space-y-2 hidden"></div>
+                    </div>
+
+                    <!-- Buscar por precio -->
+                    <div class="border-b pb-6">
+                        <button id="toggle-precio" class="flex items-center justify-between w-full font-semibold mb-4 text-gray-700 hover:text-blue-600">
+                            <span>Buscar por precio</span>
+                            <svg id="icon-precio" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4 transform transition-transform duration-200">
+                                <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                        <div id="precio-container" class="space-y-3 hidden">
+                            <input id="precio-rango" type="range" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600" min="0" max="100000" step="1000">
+                            <div class="flex justify-between text-sm text-gray-600">
+                                <span>$0</span>
+                                <span id="precio-valor">$100.000+</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+			<!-- Productos -->
+            <div class="flex-1 min-w-0">
+				<div id="productos-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+					<!-- Los productos se cargarán dinámicamente desde la API -->
+					<div class="col-span-full text-center py-8">
+						<div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
+						<p class="text-gray-500 mt-4">Cargando productos...</p>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- Información de paginación -->
+		<div id="info-paginacion" class="mt-8 text-center text-gray-600">
+			<!-- La información se generará dinámicamente -->
+		</div>
+
+		<!-- Paginación -->
+		<div id="paginacion" class="mt-4 flex justify-center items-center gap-4">
+			<!-- La paginación se generará dinámicamente -->
+		</div>
+	</div>
+
+	<!-- Footer -->
+    <footer class="hidden mt-8 pt-6 border-t border-gray-200 bg-gradient-to-b from-white to-gray-50" aria-hidden="true">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-3 gap-6 pb-6">
+                <div class="text-center md:text-left">
+                    <img src="/images/logos/logo_bn.webp" alt="Ferretería Patricio" class="w-40 h-32 object-contain mx-auto md:mx-0 mb-3">
+                </div>
+                <div class="text-center md:text-left">
+                    <h3 class="text-lg font-semibold mb-3 text-gray-800">Contacto</h3>
+                    <div class="space-y-2 text-sm text-gray-700">
+						<div class="flex items-center gap-2 justify-center md:justify-start">
+							<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+								<path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+							</svg>
+							<span>+56 9 0000000</span>
+						</div>
+						<div class="flex items-center gap-2 justify-center md:justify-start">
+							<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+								<path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+								<path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+							</svg>
+							<span>contacto@ferreteriapatricio.com</span>
+						</div>
+						<div class="flex items-center gap-2 justify-center md:justify-start">
+							<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+								<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd" />
+							</svg>
+							<span>Lun-Vie 8:30-18:00 hrs</span>
+						</div>
+						<div class="flex items-center gap-3 justify-center md:justify-start mt-3">
+							<a href="https://facebook.com" class="hover:text-blue-600">
+								<svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+									<path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z" />
+								</svg>
+							</a>
+							<a href="https://instagram.com" class="hover:text-pink-600">
+								<svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+									<path d="M12 2c2.717 0 3.056.01 4.122.06 1.065.05 1.79.217 2.428.465.66.254 1.216.598 1.772 1.153a4.908 4.908 0 011.153 1.772c.247.637.415 1.363.465 2.428.047 1.066.06 1.405.06 4.122 0 2.717-.01 3.056-.06 4.122-.05 1.065-.218 1.79-.465 2.428a4.883 4.883 0 01-1.153 1.772 4.915 4.915 0 01-1.772 1.153c-.637.247-1.363.415-2.428.465-1.066.047-1.405.06-4.122.06-2.717 0-3.056-.01-4.122-.06-1.065-.05-1.79-.218-2.428-.465a4.89 4.89 0 01-1.772-1.153 4.904 4.904 0 01-1.153-1.772c-.248-.637-.415-1.363-.465-2.428C2.013 15.056 2 14.717 2 12c0-2.717.01-3.056.06-4.122.05-1.066.217-1.79.465-2.428a4.88 4.88 0 011.153-1.772A4.897 4.897 0 015.45 2.525c.638-.248 1.362-.415 2.428-.465C8.944 2.013 9.283 2 12 2zm0 5a5 5 0 100 10 5 5 0 000-10zm6.5-.25a1.25 1.25 0 10-2.5 0 1.25 1.25 0 002.5 0zM12 9a3 3 0 110 6 3 3 0 010-6z"/>
+								</svg>
+							</a>
+							<a href="https://wa.me/56998116663" class="hover:text-green-600">
+								<svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+									<path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+							</svg>
+                        </a>
+                    </div>
+                </div>
+                <div class="text-center md:text-left">
+                    <h3 class="text-lg font-semibold mb-3 text-gray-800">Acerca de Ferretería Patricio</h3>
+                    <ul class="space-y-2 text-sm text-gray-700">
+                        <li>
+                            <a href="/nosotros#quienes-somos" class="text-gray-700 hover:text-blue-600">Quiénes somos</a>
+                        </li>
+                        <li>
+                            <a href="/nosotros#nuestra-vision" class="text-gray-700 hover:text-blue-600">Nuestra visión</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </footer>
+</Layout>
