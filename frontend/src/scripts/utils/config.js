@@ -12,9 +12,10 @@ const getEnvVar = (name, defaultValue = undefined) => {
 };
 
 // Configuración de la API
-export const API_URL = isDevelopment 
-    ? getEnvVar('PUBLIC_API_URL', 'http://localhost:8000/api')
-    : getEnvVar('PUBLIC_API_URL_PRODUCTION', 'https://hammernet-backend.onrender.com/api');
+const devApiRaw = getEnvVar('PUBLIC_API_URL', 'http://localhost:8000/api');
+export const API_URL = isDevelopment
+    ? (String(devApiRaw || '').startsWith('/') ? 'http://localhost:8000/api' : devApiRaw)
+    : getEnvVar('PUBLIC_API_URL_PRODUCTION', 'https://hammernet.onrender.com/api');
 
 // Configuración de CORS
 export const corsConfig = {

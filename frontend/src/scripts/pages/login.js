@@ -1,6 +1,6 @@
 // Configuración centralizada
-import { API_URL, corsConfig, API_TIMEOUT } from '../utils/config.js';
-import { digitsOnly, formatRutUI, formatRutFromDigits } from '../utils/rut.js';
+import { API_URL, corsConfig, API_TIMEOUT } from '../scripts/utils/config.js';
+import { digitsOnly, formatRutUI, formatRutFromDigits } from '../scripts/utils/rut.js';
 // Asegurar headers adecuados para este flujo
 corsConfig.headers = {
   'Content-Type': 'application/x-www-form-urlencoded',
@@ -130,9 +130,7 @@ async function handleLogin(e) {
     // Verificar disponibilidad del servidor antes de intentar autenticar
     const serverAvailable = await checkServerAvailability();
     if (!serverAvailable.available) {
-        showStatus('El servidor no está disponible. Por favor, intente más tarde.', 'error');
-        showLoading(false);
-        return;
+        showStatus('No se pudo verificar el servidor. Intentando iniciar sesión...', 'info');
     }
     
     try {
@@ -228,16 +226,14 @@ async function handleLogin(e) {
         const user = {
             id_usuario: data.id_usuario,
             nombre: data.nombre,
+            apellido: data.apellido ?? data.apellidos ?? data.last_name,
+            email: data.email ?? data.correo ?? data.mail,
+            telefono: data.telefono ?? data.phone ?? data.celular,
             rut: data.rut ?? digitsOnly(usernameInput),
             rol: data.role || data.rol || 'cliente'
         };
         const workerRoles = ['administrador','admin','trabajador','vendedor','bodeguero'];
         const isWorkerRole = workerRoles.includes(String(user.rol).toLowerCase());
-        if ((tipoSeleccionado === 'trabajador') && !isWorkerRole) {
-            showStatus('Acceso denegado: tu cuenta es de cliente y no corresponde el inicio como trabajador. Por favor usa el modo Cliente.', 'error');
-            showLoading(false);
-            return;
-        }
         
         // Guardar estado de autenticación y token usando el nombre real
         const storage = (tipoSeleccionado === 'trabajador') ? window.sessionStorage : window.localStorage;
