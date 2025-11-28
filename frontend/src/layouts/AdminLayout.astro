@@ -133,66 +133,83 @@ import EnvLoader from '../components/EnvLoader.astro';
 </html>
 
 <script>
+<script>
 document.addEventListener('DOMContentLoaded', () => {
+    // --- 1. Referencias ---
     const nombreUsuarioElement = document.getElementById('nombreUsuario');
-    const nombreUsuario = (sessionStorage.getItem('nombreUsuario') || localStorage.getItem('nombreUsuario'));
     const btnLogout = document.getElementById('btnLogout');
     const btnLogoutFloating = document.getElementById('btnLogoutFloating');
-    const btnNotificaciones = document.getElementById('btnNotificaciones');
-    const notifPanel = document.getElementById('notifPanel');
-    const notifBadge = document.getElementById('notifBadge');
-    const notifList = document.getElementById('notifList');
 
-    const isLoggedIn = (sessionStorage.getItem('isLoggedIn') === 'true') || (localStorage.getItem('isLoggedIn') === 'true');
-    const token = sessionStorage.getItem('token') || localStorage.getItem('token');
-    const storedRole = sessionStorage.getItem('role') || localStorage.getItem('role');
-    const loginTipo = localStorage.getItem('loginTipo') || '';
-    const storedUserRaw = sessionStorage.getItem('user') || localStorage.getItem('user');
-    let storedUserRole = null;
+    // --- 2. Recuperar Datos ---
+    let user = null;
     try {
-        const u = storedUserRaw ? JSON.parse(storedUserRaw) : null;
-        storedUserRole = u && (u.rol || u.role) ? (u.rol || u.role) : null;
-    } catch {}
-    const role = String(storedUserRole || storedRole || loginTipo || '').toLowerCase();
-    const allowedRoles = ['administrador','admin','trabajador','vendedor','bodeguero'];
+        const uStr = sessionStorage.getItem('user') || localStorage.getItem('user');
+        if (uStr) user = JSON.parse(uStr);
+    } catch (e) { console.error(e); }
+
+    const storedName = sessionStorage.getItem('nombreUsuario') || localStorage.getItem('nombreUsuario');
+    const storedRole = sessionStorage.getItem('role') || localStorage.getItem('role');
+    const loginTipo = localStorage.getItem('loginTipo');
+    const currentRole = (user?.rol || user?.role || storedRole || loginTipo || '').toLowerCase();
+
+    // --- 3. Validación de Acceso ---
+    const isLoggedIn = (sessionStorage.getItem('isLoggedIn') === 'true') || (localStorage.getItem('isLoggedIn') === 'true');
+    const allowedRoles = ['administrador', 'admin', 'trabajador', 'vendedor', 'bodeguero'];
 
     if (!isLoggedIn) {
         window.location.href = '/login?tipo=trabajador';
         return;
     }
-    if (!allowedRoles.includes(role)) {
+    
+    if (!allowedRoles.includes(currentRole)) {
         window.location.href = '/';
         return;
     }
 
-    if (nombreUsuario && nombreUsuarioElement) {
-        nombreUsuarioElement.textContent = nombreUsuario;
+    // --- 4. Lógica de Visualización (CORREGIDA) ---
+    if (nombreUsuarioElement) {
+        let textToShow = '';
+
+        // Prioridad 1: Nombre guardado (pero ignoramos "Usuario" genérico)
+        if (storedName && storedName !== 'null' && storedName !== 'Usuario') {
+            textToShow = storedName;
+        } 
+        // Prioridad 2: Nombre en objeto user
+        else if (user && user.nombre && user.nombre !== 'Usuario') {
+            textToShow = user.nombre;
+        } 
+        // Prioridad 3: RUT (Si todo lo anterior falló o era "Usuario")
+        else if (user && user.rut) {
+            textToShow = user.rut; // Se mostrará el RUT crudo o formateado si viene así
+        } 
+        // Prioridad 4: Fallback final
+        else {
+            textToShow = 'Usuario';
+        }
+
+        // Capitalizar
+        textToShow = textToShow.charAt(0).toUpperCase() + textToShow.slice(1);
+        nombreUsuarioElement.textContent = textToShow;
     }
 
+    // --- 5. Logout ---
     function doLogout() {
-            try {
-                sessionStorage.removeItem('isLoggedIn');
-                sessionStorage.removeItem('nombreUsuario');
-                sessionStorage.removeItem('token');
-                sessionStorage.removeItem('user');
-                sessionStorage.removeItem('role');
-            } catch {}
-            try {
-                localStorage.removeItem('isLoggedIn');
-                localStorage.removeItem('nombreUsuario');
-                localStorage.removeItem('token');
-                localStorage.removeItem('user');
-                localStorage.removeItem('role');
-            } catch {}
-            try {
-                document.cookie = 'isLoggedIn=; Max-Age=0; path=/; SameSite=Lax';
-                document.cookie = 'role=; Max-Age=0; path=/; SameSite=Lax';
-                document.cookie = 'loginTipo=; Max-Age=0; path=/; SameSite=Lax';
-            } catch {}
-            window.location.href = '/';
+        sessionStorage.clear();
+        localStorage.clear();
+        document.cookie.split(";").forEach(c => { 
+            document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+        });
+        window.location.href = '/';
     }
+
     if (btnLogout) btnLogout.addEventListener('click', doLogout);
     if (btnLogoutFloating) btnLogoutFloating.addEventListener('click', doLogout);
+
+    // --- 6. Notificaciones (Igual que antes) ---
+    const btnNotificaciones = document.getElementById('btnNotificaciones');
+    const notifPanel = document.getElementById('notifPanel');
+    const notifBadge = document.getElementById('notifBadge');
+    const notifList = document.getElementById('notifList');
 
     async function fetchJSON(url) {
         const res = await fetch(url);
@@ -201,6 +218,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderNotifs(items) {
+        if (!notifList) return;
         const count = items.length;
         if (count > 0) {
             notifBadge.textContent = String(count);
@@ -212,10 +230,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 </button>
             `).join('');
             Array.from(notifList.querySelectorAll('button')).forEach(b => {
-                b.onclick = () => {
-                    const n = decodeURIComponent(b.getAttribute('data-name'));
-                    window.location.href = '/admin/inventario?q=' + encodeURIComponent(n);
-                };
+                b.onclick = () => window.location.href = '/admin/inventario?q=' + encodeURIComponent(decodeURIComponent(b.getAttribute('data-name')));
             });
         } else {
             notifBadge.classList.add('hidden');
@@ -223,32 +238,17 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    async function loadLowStock() {
-        try {
-            const productos = await fetchJSON(`${window.API_BASE || '/api'}/productos/`);
-            const low = Array.isArray(productos) ? productos.filter(p => {
-                const c = Number(p.cantidad_disponible || 0);
-                const min = Number(p.stock_minimo || 0);
-                const thr = min > 0 ? min : 5;
-                return c >= 0 && c <= thr;
-            }) : [];
-            renderNotifs(low.slice(0, 50));
-        } catch(e) {
-            renderNotifs([]);
-        }
-    }
-
-    if (btnNotificaciones && notifPanel) {
-        btnNotificaciones.onclick = () => {
-            notifPanel.classList.toggle('hidden');
-        };
+    if (btnNotificaciones) {
+        btnNotificaciones.onclick = () => notifPanel.classList.toggle('hidden');
         document.addEventListener('click', (ev) => {
-            const t = ev.target;
-            if (!notifPanel.contains(t) && !btnNotificaciones.contains(t)) {
+            if (!notifPanel.contains(ev.target) && !btnNotificaciones.contains(ev.target)) {
                 notifPanel.classList.add('hidden');
             }
         });
-        loadLowStock();
+        fetchJSON('/api/productos/').then(prods => {
+             const low = prods.filter(p => (Number(p.cantidad_disponible)||0) <= (Number(p.stock_minimo)||5));
+             renderNotifs(low.slice(0, 50));
+        }).catch(() => renderNotifs([]));
     }
 });
 </script>
