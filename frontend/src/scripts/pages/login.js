@@ -220,31 +220,32 @@ async function handleLogin(e) {
         }
         const data = await response.json();
         console.log('Respuesta de autenticación:', JSON.stringify(data));
-
-        // 1. Construir usuario base con los datos del login
+        // 1. Construir usuario base (Corrección: Validar data.rut no sea vacío)
+        // Si data.rut viene vacío, forzamos usar el input del usuario.
+        const rutBackend = (data.rut && String(data.rut).trim().length > 0) ? data.rut : null;
+        const rutInput = digitsOnly(usernameInput); // Asegura obtener números del input
+        
         const user = {
             id_usuario: data.id_usuario,
-            nombre: data.nombre, // Puede venir null si el backend no lo envía en el token
-            rut: data.rut ?? digitsOnly(usernameInput),
+            nombre: data.nombre, 
+            rut: rutBackend || rutInput, // Prioridad corregida
             rol: data.role || data.rol || 'cliente'
         };
 
-        // 2. Validación de seguridad: ¿Es un rol permitido para el panel?
+        // 2. Validación de seguridad (Sin cambios)
         const workerRoles = ['administrador','admin','trabajador','vendedor','bodeguero'];
         const isWorkerRole = workerRoles.includes(String(user.rol).toLowerCase());
         
-        // Si intenta entrar como trabajador pero es cliente, lo bloqueamos
         if ((tipoSeleccionado === 'trabajador') && !isWorkerRole) {
-            showStatus('Acceso denegado: cuenta de cliente no permitida en acceso de trabajadores.', 'error');
+            showStatus('Acceso denegado: cuenta de cliente no permitida.', 'error');
             showLoading(false);
             return;
         }
         
-        // 3. Elegir dónde guardar (Session para trabajadores por seguridad, Local para clientes)
+        // 3. Almacenamiento
         const storage = (tipoSeleccionado === 'trabajador') ? window.sessionStorage : window.localStorage;
         
-        // 4. Obtener datos extra del usuario (Merge seguro)
-        // Esto es crucial: no sobrescribimos "a ciegas", sino que mezclamos los datos.
+        // 4. Obtener datos extra (Merge seguro)
         let finalUser = { ...user };
         
         try {
@@ -258,48 +259,53 @@ async function handleLogin(e) {
             if (uResp.ok) {
                 const fullUser = await uResp.json();
                 
-                // Mezclamos los datos nuevos con los que ya teníamos
+                // Mezcla inteligente
                 finalUser = {
                     ...finalUser,
                     email: fullUser.email || finalUser.email,
                     telefono: fullUser.telefono || finalUser.telefono,
-                    // Si el nombre venía null antes, intentamos usar el del endpoint.
-                    // Si sigue siendo null, se queda así (no ponemos "Trabajador" ni nada raro).
-                    nombre: (finalUser.nombre) ? finalUser.nombre : (fullUser.nombre || null)
+                    // Si el backend trae nombre, úsalo. Si no, mantén lo que tengas.
+                    nombre: (fullUser.nombre && fullUser.nombre.trim() !== "") ? fullUser.nombre : (finalUser.nombre || null)
                 };
             }
         } catch (err) {
-            console.warn('No se pudieron cargar detalles extra del usuario:', err);
+            console.warn('No se pudieron cargar detalles extra:', err);
         }
 
-        // 5. Calcular el Nombre Visible (ESTA ES LA CORRECCIÓN CLAVE)
-        // Prioridad: Nombre Real -> RUT Formateado -> "Usuario"
-        // NUNCA usamos el Rol como nombre.
-        const nombreVisible = finalUser.nombre 
-            ? finalUser.nombre 
-            : (finalUser.rut ? formatRutFromDigits(finalUser.rut) : 'Usuario');
+        // 5. Calcular Nombre Visible (Corrección: Prioridad estricta)
+        let nombreVisible = 'Usuario';
+        
+        if (finalUser.nombre && finalUser.nombre.trim() !== "") {
+            nombreVisible = finalUser.nombre;
+        } else if (finalUser.rut) {
+            // Si no hay nombre, formateamos el RUT para mostrarlo
+            try {
+                // Intentamos usar la función importada, si falla usamos raw
+                nombreVisible = formatRutFromDigits(String(finalUser.rut));
+            } catch (e) {
+                nombreVisible = finalUser.rut;
+            }
+        }
 
-        // 6. Guardar todo en el navegador
+        // 6. Guardar todo
         storage.setItem('isLoggedIn', 'true');
         storage.setItem('token', data.access_token);
         storage.setItem('user', JSON.stringify(finalUser));
         storage.setItem('role', finalUser.rol);
-        storage.setItem('nombreUsuario', nombreVisible); // Guardamos el nombre CORRECTO
+        storage.setItem('nombreUsuario', nombreVisible); // Aquí ya va el RUT o Nombre, nunca vacío
         storage.setItem('loginTipo', tipoSeleccionado || '');
 
-        // Cookies de respaldo para middleware
         document.cookie = `isLoggedIn=true; path=/; SameSite=Lax`;
         document.cookie = `role=${encodeURIComponent(finalUser.rol)}; path=/; SameSite=Lax`;
-        document.cookie = `loginTipo=${encodeURIComponent(tipoSeleccionado || '')}; path=/; SameSite=Lax`;
         
         showStatus('Autenticación exitosa. Redirigiendo...', 'success');
         
-        // 7. Redirección final
         const destino = (tipoSeleccionado === 'trabajador' || isWorkerRole) ? '/admin' : '/';
         setTimeout(() => {
             window.location.href = destino;
         }, 800);
 
+    
         
     } catch (error) {
         // Limpiar el timeout si existe
