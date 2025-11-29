@@ -135,15 +135,16 @@ async def actualizar_inventario(
     try:
         ip = request.client.host if request and request.client else None
         ua = request.headers.get("user-agent") if request else None
-        await registrar_evento(db, AuditoriaCreate(
-            usuario_id=None,  # Se puede cambiar a current_user["id_usuario"] si se habilita auth
+        await registrar_evento(
+            db,
             accion="inventario_actualizar",
+            usuario_rut=str(getattr(current_user, "rut", None)) if current_user else None,
             entidad_tipo="Inventario",
             entidad_id=inventario_id,
             detalle=f"cantidad={cantidad}, precio={precio}",
             ip_address=ip,
             user_agent=ua,
-        ))
+        )
     except Exception:
         pass
     return resultado
@@ -438,6 +439,7 @@ async def quitar_producto_de_catalogo(
     except Exception:
         pass
     return resultado
+
 @router.get("/similares/{producto_id}")
 async def obtener_productos_similares(
     producto_id: int,
@@ -446,24 +448,6 @@ async def obtener_productos_similares(
 ):
     """Obtener productos similares desde la base de datos (misma subcategoría o categoría)."""
     return await ProductoController.obtener_similares(producto_id, db, limit)
-
-
-@router.post("/seed")
-async def seed_productos_de_ejemplo(
-    db: Session = Depends(get_db)
-):
-    """Inserta datos de ejemplo (categorías, subcategorías y productos)."""
-    return await ProductoController.seed_ejemplos(db)
-
-
-@router.post("/cleanup/color-null")
-async def cleanup_color_null(db: Session = Depends(get_db)):
-    """Elimina o inactiva productos con color nulo/vacío.
-    - Elimina productos sin ventas relacionadas.
-    - Inactiva y saca del catálogo los que tengan ventas.
-    """
-    resumen = ProductoController.purge_products_without_color(db)
-    return {"status": "ok", "resumen": resumen}
 
 @router.post("/seed/all")
 async def seed_todas_tablas(

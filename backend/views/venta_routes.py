@@ -24,6 +24,7 @@ from seed_data import seed_extra_ventas
 from seed_data import seed_client_purchases
 from core.auth import get_current_user, require_admin
 from config.constants import API_PREFIX
+from models.pago import PagoDB
 
 router = APIRouter(prefix=f"{API_PREFIX}/ventas", tags=["Ventas"])
 
@@ -35,7 +36,7 @@ async def crear_venta(
     # current_user: dict = Depends(get_current_user)  # Comentado temporalmente
 ):
     """ Crear una nueva venta """
-    return VentaController.crear_venta(db, venta, venta.id_usuario)
+    return VentaController.crear_venta(db, venta, venta.rut_usuario)
 
 
 @router.post("/guest", response_model=Venta)
@@ -53,12 +54,12 @@ def obtener_ventas(
     limit: int = Query(100, ge=1, le=1000, description="Número máximo de registros a devolver"),
     fecha_inicio: Optional[date] = Query(None, description="Fecha de inicio para filtrar ventas"),
     fecha_fin: Optional[date] = Query(None, description="Fecha de fin para filtrar ventas"),
-    id_usuario: Optional[int] = Query(None, description="ID del usuario para filtrar ventas"),
+    rut_usuario: Optional[str] = Query(None, description="RUT del usuario para filtrar ventas"),
     db: Session = Depends(get_db),
     # current_user: dict = Depends(get_current_user)  # Comentado temporalmente
 ):
     """ Obtener todas las ventas con filtros opcionales """
-    return VentaController.obtener_ventas(db, skip, limit, fecha_inicio, fecha_fin, id_usuario)
+    return VentaController.obtener_ventas(db, skip, limit, fecha_inicio, fecha_fin, rut_usuario)
 
 
 @router.get("/{id_venta}", response_model=Venta)
@@ -80,12 +81,12 @@ async def obtener_venta_por_id(
 @router.put("/{id_venta}/cancelar")
 async def cancelar_venta(
     id_venta: int,
-    id_usuario: int = Query(..., description="ID del usuario que cancela"),
+    rut_usuario: str = Query(..., description="RUT del usuario que cancela"),
     db: Session = Depends(get_db),
     # current_user: dict = Depends(get_current_user)  # Comentado temporalmente
 ):
     """ Cancelar una venta y restaurar el inventario """
-    resultado = VentaController.cancelar_venta(db, id_venta, id_usuario)
+    resultado = VentaController.cancelar_venta(db, id_venta, rut_usuario)
     if not resultado:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -98,11 +99,11 @@ async def cancelar_venta(
 async def completar_venta(
     id_venta: int,
     metodo: Optional[str] = Query(None, description="Metodo de entrega: retiro|despacho"),
-    usuario_admin_id: Optional[int] = Query(None, description="ID del usuario administrador que confirma"),
+    usuario_admin_rut: Optional[str] = Query(None, description="RUT del usuario administrador que confirma"),
     db: Session = Depends(get_db),
 ):
     """Marcar una venta como completada (entregada)."""
-    resultado = VentaController.completar_venta(db, id_venta, usuario_admin_id, metodo)
+    resultado = VentaController.completar_venta(db, id_venta, usuario_admin_rut, metodo)
     return {"message": "Venta marcada como completada", "venta": resultado}
 
 
@@ -145,7 +146,6 @@ async def obtener_movimientos_inventario(
 async def obtener_estadisticas_ventas(
     fecha_inicio: Optional[date] = Query(None, description="Fecha de inicio para estadísticas"),
     fecha_fin: Optional[date] = Query(None, description="Fecha de fin para estadísticas"),
-    id_usuario: Optional[int] = Query(None, description="ID del usuario para filtrar estadísticas"),
     db: Session = Depends(get_db),
     # current_user: dict = Depends(get_current_user)  # Comentado temporalmente
 ):
@@ -153,9 +153,9 @@ async def obtener_estadisticas_ventas(
     return VentaController.obtener_estadisticas_ventas(db, fecha_inicio, fecha_fin)
 
 
-@router.get("/usuario/{id_usuario}", response_model=List[Venta])
+@router.get("/usuario/{rut}", response_model=List[Venta])
 async def obtener_ventas_por_usuario(
-    id_usuario: int,
+    rut: str,
     skip: int = Query(0, ge=0, description="Número de registros a omitir"),
     limit: int = Query(100, ge=1, le=1000, description="Número máximo de registros a devolver"),
     fecha_inicio: Optional[date] = Query(None, description="Fecha de inicio para filtrar ventas"),
@@ -164,7 +164,18 @@ async def obtener_ventas_por_usuario(
     # current_user: dict = Depends(get_current_user)  # Comentado temporalmente
 ):
     """ Obtener ventas de un usuario específico """
-    return VentaController.obtener_ventas(db, skip, limit, fecha_inicio, fecha_fin, id_usuario)
+    return VentaController.obtener_ventas(db, skip, limit, fecha_inicio, fecha_fin, rut)
+
+
+@router.get("/orden/{buy_order}", response_model=Venta)
+async def obtener_venta_por_orden(
+    buy_order: str,
+    db: Session = Depends(get_db),
+):
+    pago = db.query(PagoDB).filter(PagoDB.buy_order == buy_order).first()
+    if not pago:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Orden no encontrada")
+    return VentaController.obtener_venta_por_id(db, pago.id_venta)
 
 
 @router.get("/producto/{id_producto}/movimientos", response_model=List[MovimientoInventario])

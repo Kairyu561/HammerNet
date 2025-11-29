@@ -218,36 +218,38 @@ async function handleLogin(e) {
             showLoading(false);
             return; // Detener la ejecución en lugar de lanzar un error
         }
+        
         const data = await response.json();
         console.log('Respuesta de autenticación:', JSON.stringify(data));
-        // 1. Construir usuario base (Corrección: Validar data.rut no sea vacío)
-        // Si data.rut viene vacío, forzamos usar el input del usuario.
-        const rutBackend = (data.rut && String(data.rut).trim().length > 0) ? data.rut : null;
-        const rutInput = digitsOnly(usernameInput); // Asegura obtener números del input
-        
+
+        // Construir objeto de usuario desde el token devuelto por el backend
         const user = {
             id_usuario: data.id_usuario,
-            nombre: data.nombre, 
-            rut: rutBackend || rutInput, // Prioridad corregida
+            nombre: data.nombre,
+            apellido: data.apellido ?? data.apellidos ?? data.last_name,
+            email: data.email ?? data.correo ?? data.mail,
+            telefono: data.telefono ?? data.phone ?? data.celular,
+            rut: data.rut ?? digitsOnly(usernameInput),
             rol: data.role || data.rol || 'cliente'
         };
-
-        // 2. Validación de seguridad (Sin cambios)
         const workerRoles = ['administrador','admin','trabajador','vendedor','bodeguero'];
         const isWorkerRole = workerRoles.includes(String(user.rol).toLowerCase());
         
-        if ((tipoSeleccionado === 'trabajador') && !isWorkerRole) {
-            showStatus('Acceso denegado: cuenta de cliente no permitida.', 'error');
-            showLoading(false);
-            return;
-        }
-        
-        // 3. Almacenamiento
+        // Guardar estado de autenticación y token usando el nombre real
         const storage = (tipoSeleccionado === 'trabajador') ? window.sessionStorage : window.localStorage;
-        
-        // 4. Obtener datos extra (Merge seguro)
-        let finalUser = { ...user };
-        
+        storage.setItem('isLoggedIn', 'true');
+        storage.setItem('token', data.access_token);
+        storage.setItem('user', JSON.stringify(user));
+        storage.setItem('role', user.rol);
+        // Preferir el nombre real para mostrar en el header; si no viene, usar lo ingresado
+        storage.setItem('nombreUsuario', user.nombre || formatRutFromDigits(user.rut));
+        document.cookie = `isLoggedIn=true; path=/; SameSite=Lax`;
+        document.cookie = `role=${encodeURIComponent(user.rol)}; path=/; SameSite=Lax`;
+        document.cookie = `loginTipo=${encodeURIComponent(tipoSeleccionado || '')}; path=/; SameSite=Lax`;
+        console.log('Token guardado:', data.access_token ? 'Token presente' : 'Token ausente');
+        console.log('Autenticación exitosa');
+
+        // Intentar obtener el usuario completo (email y teléfono) y actualizar storage
         try {
             const uResp = await fetch(`${API_URL}/usuarios/${user.id_usuario}`, {
                 headers: {
@@ -255,58 +257,29 @@ async function handleLogin(e) {
                     'Authorization': `Bearer ${data.access_token}`
                 }
             });
-            
             if (uResp.ok) {
                 const fullUser = await uResp.json();
-                
-                // Mezcla inteligente
-                finalUser = {
-                    ...finalUser,
-                    email: fullUser.email || finalUser.email,
-                    telefono: fullUser.telefono || finalUser.telefono,
-                    // Si el backend trae nombre, úsalo. Si no, mantén lo que tengas.
-                    nombre: (fullUser.nombre && fullUser.nombre.trim() !== "") ? fullUser.nombre : (finalUser.nombre || null)
-                };
+                if (fullUser && (fullUser.email || fullUser.telefono)) {
+                    storage.setItem('user', JSON.stringify(fullUser));
+                }
+            } else {
+                console.warn('No se pudo cargar usuario completo, status:', uResp.status);
             }
         } catch (err) {
-            console.warn('No se pudieron cargar detalles extra:', err);
+            console.warn('Fallo al cargar usuario completo:', err);
         }
-
-        // 5. Calcular Nombre Visible (Corrección: Prioridad estricta)
-        let nombreVisible = 'Usuario';
         
-        if (finalUser.nombre && finalUser.nombre.trim() !== "") {
-            nombreVisible = finalUser.nombre;
-        } else if (finalUser.rut) {
-            // Si no hay nombre, formateamos el RUT para mostrarlo
-            try {
-                // Intentamos usar la función importada, si falla usamos raw
-                nombreVisible = formatRutFromDigits(String(finalUser.rut));
-            } catch (e) {
-                nombreVisible = finalUser.rut;
-            }
-        }
-
-        // 6. Guardar todo
-        storage.setItem('isLoggedIn', 'true');
-        storage.setItem('token', data.access_token);
-        storage.setItem('user', JSON.stringify(finalUser));
-        storage.setItem('role', finalUser.rol);
-        storage.setItem('nombreUsuario', nombreVisible); // Aquí ya va el RUT o Nombre, nunca vacío
-        storage.setItem('loginTipo', tipoSeleccionado || '');
-
-        document.cookie = `isLoggedIn=true; path=/; SameSite=Lax`;
-        document.cookie = `role=${encodeURIComponent(finalUser.rol)}; path=/; SameSite=Lax`;
-        
+        // Mostrar mensaje de éxito
         showStatus('Autenticación exitosa. Redirigiendo...', 'success');
         
-        const destino = (tipoSeleccionado === 'trabajador' || isWorkerRole) ? '/admin' : '/';
+        const roleStr = String(user.rol || user.role || '').toLowerCase();
+        const workerRolesArr = ['administrador','admin','trabajador','vendedor','bodeguero'];
+        const allowWorker = workerRolesArr.includes(roleStr);
+        const tipoFinal = tipoSeleccionado ? tipoSeleccionado : (allowWorker ? 'trabajador' : 'cliente');
+        const destino = tipoFinal === 'trabajador' ? '/admin' : '/';
         setTimeout(() => {
             window.location.href = destino;
         }, 800);
-
-    
-        
     } catch (error) {
         // Limpiar el timeout si existe
         if (typeof timeoutId !== 'undefined') {

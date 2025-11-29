@@ -242,14 +242,17 @@ function cargarUsuarios(usuarios) {
 // Nota: los clientes se renderizan en la misma tabla usando cargarUsuarios
 
 // Función para cargar usuarios desactivados en el modal
-function cargarUsuarios(usuarios) {
-    const tbody = document.querySelector('#tablaUsuarios');
-    if (!tbody) return;
+function cargarUsuariosDesactivados(usuarios) {
+    const tbody = document.querySelector('#tablaUsuariosDesactivados');
+    if (!tbody) {
+        console.error('No se encontró el tbody de la tabla de usuarios desactivados');
+        return;
+    }
 
     tbody.innerHTML = '';
 
     if (usuarios.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-gray-500">No hay usuarios registrados</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-gray-500">No hay usuarios desactivados</td></tr>';
         return;
     }
 
@@ -259,33 +262,18 @@ function cargarUsuarios(usuarios) {
         
         const fechaCreacion = new Date(usuario.fecha_creacion).toLocaleDateString('es-ES');
         
-        // Botones de acción (sin cambios)
-        let botonesAccion = '';
-        if (usuario.role !== 'cliente') {
-            botonesAccion = `
-                <button onclick="editarUsuario(${usuario.id_usuario})" class="text-indigo-600 hover:text-indigo-900 mr-3">Editar</button>
-                <button onclick="confirmarEliminarUsuario(${usuario.id_usuario})" class="text-red-600 hover:text-red-900">Desactivar</button>
-            `;
-        } else {
-            botonesAccion = `
-                <button onclick="verInfoUsuario(${usuario.id_usuario})" class="text-blue-600 hover:text-blue-900">Ver Información</button>
-            `;
-        }
-        
         const nombreCompleto = `${usuario.nombre || ''}${usuario.apellido ? ' ' + usuario.apellido : ''}`.trim();
-        
-        // CORRECCIÓN RUT: Usar formatRutFromDigits para calcular DV y mostrar guion
-        const rutDigits = String(usuario.rut ?? '').replace(/\D/g, '');
-        const rutDisplay = (rutDigits && rutDigits !== '0') ? formatRutFromDigits(rutDigits) : '—';
-        
+        const rutDigits2 = String(usuario.rut ?? '').replace(/\D/g, '');
+        const rutDisplay2 = (rutDigits2 && rutDigits2 !== '0') ? formatRutFromDigits(rutDigits2) : '—';
         row.innerHTML = `
             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${usuario.id_usuario}</td>
             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${nombreCompleto || '—'}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">${rutDisplay}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${rutDisplay2}</td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${usuario.role}</td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${fechaCreacion}</td>
             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                ${botonesAccion}
+                <button onclick="activarUsuario(${usuario.id_usuario})" class="text-green-600 hover:text-green-800 font-semibold mr-3">Activar</button>
+                <button onclick="eliminarUsuarioPermanente(${usuario.id_usuario})" class="text-red-600 hover:text-red-900 font-semibold">Eliminar Permanentemente</button>
             </td>
         `;
         
@@ -441,18 +429,12 @@ window.verInfoUsuario = async function(id) {
     try {
         const usuario = await getData(`/api/usuarios/${id}`);
         if (usuario) {
+            // Rellenar datos básicos
             document.getElementById('infoId').textContent = usuario.id_usuario ?? '—';
             document.getElementById('infoNombre').textContent = usuario.nombre ?? '—';
             document.getElementById('infoApellido').textContent = usuario.apellido ?? '—';
-            
-            // CORRECCIÓN: Usar formatRutFromDigits aquí también
-            // Antes usaba formatRutUI, que fallaba con números planos de la BD
-            const rutRaw = String(usuario.rut ?? '').replace(/\D/g, '');
-            const rutFormateado = (rutRaw && rutRaw !== '0') ? formatRutFromDigits(rutRaw) : '—';
-            
-            document.getElementById('infoUsername').textContent = rutFormateado;
-            document.getElementById('infoRut').textContent = rutFormateado; // Mostrar formateado también aquí
-            
+            document.getElementById('infoUsername').textContent = formatRutUI(String(usuario.rut ?? '')) ?? '—';
+            document.getElementById('infoRut').textContent = usuario.rut ?? '—';
             document.getElementById('infoEmail').textContent = usuario.email ?? '—';
             document.getElementById('infoTelefono').textContent = usuario.telefono ?? '—';
             document.getElementById('infoRol').textContent = usuario.role ?? '—';

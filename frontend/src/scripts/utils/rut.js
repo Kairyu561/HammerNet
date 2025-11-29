@@ -27,8 +27,7 @@ export function computeRutDV(digits) {
   return String(rest);
 }
 
-// Formatear valor ingresado en inputs (UI): XX.XXX.XXX-DV
-// Se usa cuando el usuario escribe y ya incluye el DV
+// Formatear valor ingresado (puede incluir DV al final) como UI: XX.XXX.XXX-DV
 export function formatRutUI(value) {
   const cleaned = cleanRutInput(value);
   if (!cleaned) return '';
@@ -46,27 +45,18 @@ export function formatRutUI(value) {
   return formatted;
 }
 
-// Formatear desde solo dígitos (Base de Datos) calculando DV automáticamente
-// USAR ESTA cuando el RUT viene de la BD (ej: 12345678) -> Salida: 12.345.678-5
+// Formatear desde solo dígitos (sin DV) calculando DV automáticamente
 export function formatRutFromDigits(digits) {
-  console.log("Calculando RUT para:", digits);
-  // Aseguramos obtener solo números
-  const raw = digitsOnly(digits);
-  // El cuerpo del RUT (sin DV) se limita a 8 dígitos por seguridad
-  const body = raw.slice(0, 8);
-  
-  if (!raw) return '';
-  
-  // Calculamos el DV basándonos en el cuerpo
-  const dv = computeRutDV(raw);
-  
+  // El cuerpo del RUT (sin DV) se limita a 8 dígitos
+  const body = digitsOnly(digits).slice(0, 8);
+  if (!body) return '';
+  const dv = computeRutDV(body);
   let formatted = '';
   let tmp = body;
   while (tmp.length > 3) {
     formatted = '.' + tmp.slice(-3) + formatted;
     tmp = tmp.slice(0, -3);
   }
-  // IMPORTANTE: Aquí agregamos el guion y el DV calculado
   formatted = tmp + formatted + '-' + dv;
   return formatted;
 }
